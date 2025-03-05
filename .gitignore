@@ -1,0 +1,6 @@
+/venv/
+lazygit
+.git
+.gitignore
+*.env
+/__pycache__/
