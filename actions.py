@@ -59,4 +59,3 @@ def send_text_message(recipient_id, message_text):
     except requests.exceptions.RequestException as e:
         print(f"Error sending message: {str(e)}")
         return None
-send_text_message(1660159627957434,"hi how are you today!")
