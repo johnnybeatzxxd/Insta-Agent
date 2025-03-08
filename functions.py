@@ -47,6 +47,11 @@ def availablity(date_input):
         The availability data from the API, or an error message.
     """
     # Process the date input
+    general = False
+    if date_input.lower() == "general":
+        general = True
+        resolved_date = datetime.date.today()
+        date_input = "today"
     if date_input.lower() == "today":
         resolved_date = datetime.date.today()
     elif date_input.lower() == "tomorrow":
@@ -72,6 +77,10 @@ def availablity(date_input):
     formatted_date = resolved_date.strftime("%Y%m%d")
 
     url = f"https://www.schedulista.com/schedule/bartaesthetics/available_times_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592411&date={formatted_date}&time_zone=Eastern+Time+(US+%26+Canada)"
+
+    if general:
+        formatted_date = formatted_date[:-2] + "01"
+        url = f"https://www.schedulista.com/schedule/bartaesthetics/available_days_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592366&start_date={formatted_date}&time_zone=Eastern+Time+(US+%26+Canada)&scan_to_first_available=true"
 
     try:
         response = requests.get(url)  # Use requests.get for GET requests

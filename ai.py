@@ -8,10 +8,10 @@ from dotenv import load_dotenv
 import traceback
 
 import functions
-load_dotenv()
+load_dotenv(override=True)
 
 gemini_api_key = os.environ.get('GeminiProKey')
-url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key={}".format(gemini_api_key)
+url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro-exp-02-05:generateContent?key={}".format(gemini_api_key)
 headers = {"Content-Type": "application/json",}
 
 
@@ -45,7 +45,7 @@ function_descriptions = [
                 "properties": {
                     "date": {
                         "type": "string",
-                        "description": "The date for checking availability. Can be a specific date in YYYY-MM-DD format or a weekday name (e.g., 'Monday', 'next Friday', 'Tue','today'.'tomorrow').'examples': ['2025-03-10', ;Monday;, 'next wednesday','today','tomorrow']",
+                        "description": "The date for checking availability. Can be a specific date in YYYY-MM-DD format or a weekday name (e.g., 'Monday', 'next Friday', 'Tue','today'.'tomorrow').'examples': ['2025-03-10', ;Monday;, 'next wednesday','today','tomorrow'] you can also use the 'general' this will return available dates with in current month",
                     },
                 
                 },
@@ -232,8 +232,101 @@ class llm:
                     retries += 1
                     time.sleep(5)
             
-
-        return response_data["candidates"][0]["content"]["parts"][0]["text"]
+        # Process all parts of the response to handle parallel function calls and text
+        has_function_calls = False
+        text_content = ""
+        
+        # Check if we have a valid response
+        if not response_data or "candidates" not in response_data:
+            return "Sorry, I couldn't generate a response at this time."
+            
+        parts = response_data["candidates"][0]["content"]["parts"]
+        
+        # First, collect any text content
+        for part in parts:
+            if "text" in part and part["text"]:
+                text_content += part["text"] + "\n"
+            
+            # Track if we have function calls to process
+            if "functionCall" in part:
+                has_function_calls = True
+        
+        # If no function calls, return the text directly
+        if not has_function_calls:
+            return text_content.strip()
+            
+        # Process parallel function calls
+        for part in parts:
+            if "functionCall" in part:
+                # Process this function call
+                function_name = part["functionCall"]["name"]
+                function_args = part["functionCall"]["args"]
+                print(f"Parallel function call detected: {function_name}")
+                
+                # Execute the function
+                function_response = self.function_call({"candidates": [{"content": {"parts": [part]}}]}, _id)
+                function_response_message = function_response["function_response"]
+                
+                # Add the function call and response to the conversation history
+                function = [{
+                    "functionCall": {
+                        "name": function_name,
+                        "args": function_args
+                    }
+                }]
+                functionResponse = [{
+                    "functionResponse": {
+                        "name": function_name,
+                        "response": {
+                            "name": function_name,
+                            "content": function_response_message
+                        }
+                    }
+                }]
+                
+                # Add to database and message history
+                database.add_message(_id, function, "model")
+                database.add_message(_id, functionResponse, "function")
+                
+                # Update messages for next API call
+                messages.append({
+                    "role": "model",
+                    "parts": function
+                })
+                messages.append({
+                    "role": "function",
+                    "parts": functionResponse
+                })
+        
+        # After processing all function calls, make a final API call to get the AI's processed response
+        # This lets the AI digest all the function results and generate a coherent response
+        retries = 0
+        max_retries = 3
+        while retries < max_retries:
+            try:
+                print("Making final request with function responses...")
+                final_response = requests.post(url, headers=headers, json=data)
+                
+                if final_response.status_code == 200:
+                    final_data = final_response.json()
+                    if final_data and "candidates" in final_data:
+                        # Get the final text response after AI has processed function results
+                        final_text = final_data["candidates"][0]["content"]["parts"][0]["text"]
+                        return final_text
+                    else:
+                        print("Empty final response, retrying...")
+                else:
+                    print(f"Received non-200 status code: {final_response.status_code}")
+                
+                retries += 1
+                time.sleep(5)
+            except requests.exceptions.RequestException as e:
+                print(f'Final request failed: {e}, retrying...')
+                retries += 1
+                time.sleep(5)
+        
+        # If final request fails, return the original text response as a fallback
+        return text_content.strip() if text_content else "Sorry, I couldn't process the response at this time."
 
 # messages = [] 
 # while True:
