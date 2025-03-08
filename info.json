@@ -1,0 +1,191 @@
+{
+  "businessDescription": "Tony Bart offers a range of permanent makeup (PMU) and cosmetic services in New York, including nano brows, microblading, ombre brows, eyeliner, lip blush, and saline removal.  Also provides Scalp Micropigmentation (SMP) and EMSculpt treatments.  Training courses are available for aspiring PMU artists, with both group and private 1:1 options.",
+  "booking": {
+    "scheduler": "Online Scheduler for Tony Bart",
+    "availability": "Currently Booking next month for PMU",
+    "smp_availability": "For SMP booking next month - Scroll to book Scalp Micropigmentation.",
+    "consultation": "SCROLL FOR FREE ZOOM CONSULTATION!"
+  },
+  "services": [
+    {
+      "name": "NANO BROWS BY TONY",
+      "price": 650,
+      "deposit": 100,
+      "description": "Machine Hairstrokes is natural technique that created hairstrokes with machine instead of a blade. This service is good for all skin types & not painful.  Touch up is recommended within 4 weeks ($150).",
+      "duration": "3 hours",
+      "suitable_for": "All skin types"
+    },
+    {
+      "name": "COMBO BROWS W MACHINE",
+      "price": 650,
+      "deposit": 100,
+      "description": "Combo brows is hairstrokes in the front done with machine & shading at the rest of the brows. Last 3-4 years. Custom shape & color.",
+      "suitable_for": "All skin types"
+
+    },
+    {
+      "name": "COLOR CORRECTION ON PREVIOUS WORK",
+      "price": 700,
+      "deposit": 100,
+      "description": ""
+    },
+    {
+      "name": "MICROBLADING BY TONY",
+      "price": 500,
+      "deposit": 100,
+      "description": "The most natural technique that mimic your natural hairs throughout the whole brow. Hairstrokes done with the blade. Touch up is recommended within 4 weeks ($100).",
+      "duration": "1.5 hours",
+      "suitable_for": "Not good for oily skin"
+
+    },
+    {
+      "name": "OMBRÉ BY TONY",
+      "price": 600,
+      "deposit": 100,
+      "description": "Ombré Powder Brows, also known as Powdered Brows are a semi-permanent eyebrow. Ombré Brows creates a soft shaded brow pencil look.  Procedure takes around 1.5-2 Hours. Lasts 3-4 years with proper aftercare & pre-care.  Touch up is recommended within 4 weeks ($150).",
+      "suitable_for": "All skin types"
+
+    },
+    {
+      "name": "EYELINER by Tony",
+      "price": 450,
+      "deposit": 100,
+      "description": "Touch up is recommended within 4 weeks ($100).",
+       "duration": "1-1.5 hours",
+      "suitable_for": "All skin types"
+    },
+    {
+      "name": "LIP BLUSH by Tony",
+      "price": 550,
+      "deposit": 100,
+      "description": "All work posted on pages of lips is done by Tony only. Kate doesn’t perform Lip Blush procedures. Touch up is recommended within 4 weeks ($100).",
+      "duration": "2 hours"
+
+    },
+      {
+      "name": "SALINE REMOVAL",
+      "price": 200,
+        "deposit":100,
+      "description": "Saline Removal is a lightening procedure to remove any pmu work or body tattoo.Takes up to 5 sessions ( depending on darkness, skin healing & more )"
+    },
+    {
+      "name": "Scalp Micropigmentation (SMP)",
+      "price": "Varies (Requires Consultation)",
+      "deposit": 200,
+      "description": "Cosmetic procedure for the introduction of special pigments into the scalp to create a visual effect of hair density, masking scars on the head, as well as creating the effect of 'shaved hair' with complete baldness. MINIMUM TO NO PAIN. LAST UP TO 3-4 YEARS. SUITABLE FOR BOTH MEN & WOMEN. Takes around 2-4 hours depending on the amount of work needed.",
+       "duration": "2-4 hours",
+      "notes": "ONLY BOOK AFTER CONSULTATION.  Text photo of head to +1 (727) 888-0088 or book Zoom consultation."
+    },
+    {
+      "name": "EMSculpt (single session)",
+      "price": 95,
+      "deposit": 50
+
+    },
+     {
+      "name": "EMSculpt (package of 3 sessions)",
+      "price": 270,
+      "deposit": 100
+
+    }
+  ],
+  "training": {
+    "group_training": {
+      "availability": "(2 Seats Left) MARCH 28-31",
+      "course": "4 DAYS BROWS & LIPS",
+      "price": 2500,
+      "deposit": 500,
+      "description": "Permanent Makeup Brows & Lips New York Seminar. NO LICENSE OR EXPERIENCE NEEDED! Full kit, Training Manuals, Certificate of Completion, Hands on Practice, Support After class, Brows & Lips techniques. Techniques: Ombré brows, combo brows w machine, color correction, intro to nano hairstrokes, lip blush & lip neutralization. Hands on practice on 1 brow model & 1 lips model (models NOT included). Full Kit Included w machine and other tools. Certificate of completion. 6 month support after course. Two detailed training manual books.",
+      "registration": "Register for MARCH 28th ONLY & you will be scheduled for ALL 4 DAYS."
+    },
+    "private_training": {
+      "options": [
+        {
+          "name": "4 Days Brows & Lips class",
+          "description": "Microblading, combo brows, color correction, lip blush, lip neutralization & *velvet lips*. Includes: 3 hands on models (models provided) & more!",
+          "tuition": 4000,
+          "deposit": 500
+        },
+        {
+          "name": "3 Days Brows class",
+          "description": "Microblading, combo brows, color correction. Includes: 2 hands on models (models provided) & more!",
+          "tuition": 2900,
+          "deposit": 500
+        },
+        {
+          "name": "2 Days Lips class",
+          "description": "Velvet lips, Lip Blush & Dark lip neutralization. Includes: 1 hands on models (models provided) & more!",
+          "tuition": 2000,
+          "deposit": 500
+        }
+      ],
+      "registration": "CALL TO REGISTER: +1 (727) 888-0088",
+      "notes": "Advanced classes are offered. Please call us."
+
+    }
+  },
+
+  "policy": {
+    "booking_agreement": "When booking with me you AGREE that you have read the following.",
+    "cancellation_rescheduling": "Deposits are NON-REFUNDABLE FOR ALL SERVICES & CLASSES! For services - 72 hours notice must be given in order to reschedule & transfer deposit to another day. For training - MINIMUM of 6 week notice must be given in order to transfer the deposit to a different date. The deposit is forfeited if the required notices aren’t given.  The deposit is transferable but NOT refundable to a future date as long as 72 hours notice is given for brow services and 6 week notice for training classes. THERE IS ABSOLUTELY NO REFUNDS FOR SERVICES OR TRAINING PERFORMED.",
+    "no_show": "Deposit is forfeited. No future appointments.",
+    "late_policy": "If you are more than 15 minutes late, your appointment will be cancelled and you will NOT receive a refund. You may schedule a new appointment with a new deposit.  If a deposit was not given, a fee will be charged before you can schedule again. This fee is $100-$200 (subject to change at any time without notice).",
+      "general_advice": "Please understand that this is a beauty treatment that requires time & patience and can result in me running behind schedule depending on the client I have ahead of you. If you are traveling to me & have to catch a flight, please allow enough time in case your appointment runs longer than expected. I like to take my time with each client",
+    "pmu_restrictions": [
+      "You are pregnant, nursing or diabetic",
+      "You are taking any medications that is a blood thinner",
+      "You have viral infections or disease",
+      "You are undergoing chemotherapy",
+      "You are under the age of 18",
+      "You are currently using accutane"
+    ],
+    "pre_procedure_advice": [
+      "Do not perform electrolysis one week before procedure",
+      "Do not tan 2 weeks prior or have sunburned face",
+      "Do you not have any type of facial or peel two weeks prior to treatment",
+      "Discontinue vitamin A or Retinol products one month prior to treatment",
+      "Do not work out the day of the procedure",
+      "Do not have Botox 2 weeks prior",
+      "Do not take fish oil or vitamin E one week prior (Natural blood thinners)",
+      "Do not tint your eyebrows 3 days before the procedure",
+      "Do not drink alcohol 24 to 48 hours before your tattoo",
+      "Do not consume coffee before your procedure",
+      "Do not take an aspirin or ibuprofen for pain relief (this thins the blood)"
+    ],
+     "lip_blush_restrictions":[
+        "If necessary, please begin your Anti-Viral medication 3 days prior the procedure.",
+        "Avoid working out 48 hours prior.",
+        "Make sure to get plenty of rest and drink lots of water to hydrate prior to Lip Blushing.",
+        "NO alcohol, caffeinated tea/coffee, or stimulants 48 hours before the procedure.",
+        "Avoid the sun and indoor tanning one week prior.",
+        "Do not take Aspirin, Niacin, Vitamin E or Advil/Ibuprofen 48 hours before the procedure.",
+        "Avoid Fish Oil, Primrose Oil, Prenatal Vitamins, “Hair, Skin & Nail” supplements, Nutritional Shakes 48 hours prior.",
+        "Discontinue Retin-A, and Alpha Hydroxy Acid (AHA) at least 6 weeks prior."
+     ],
+      "lip_blush_requirements":[
+          "If you get cold sores you will need an antiviral prescription. You must inform your physician of your decision to have permanent cosmetics applied to your lips. Physicians usually instruct you to begin taking it 3 days before the procedure, for a 7-10 day course.",
+          "If you have had any type of lip surgery, please consult with the physician about how long you should wait before having cosmetic tattooing on the lips. Most physicians are giving a 3 week “go ahead” after lip filler injections like collagen or Restylane. Although, permanent makeup artists have noticed poor color retention in lips that have received collagen injections within the previous 6 months, and longer for Restylane. There has even been a little pigment migration along lip edges with Restylane. It may be best not to have lip filler injections and permanent lip color within the same year. If the lip surgery involves an incision (like a lip implant), the incision needs to mature about 6 months before tattooing on top of it.",
+           "Oral prosthesis dentures/partials/braces/retainers and tongue piercing bars may increase risk of getting bacterial and/or fungal infection from the mouth to the lips. Frequent or recent sinus infection puts lips at risk of infection. Denture wearers generally carry a higher candida/yeast count."
+
+      ]
+  },
+  "payment_plans": {
+    "available": true,
+    "provider": "Cherry Payment Plans",
+    "description": "Get treated now and pay over time with Cherry. Cherry is a payment plan designed for your health, beauty, and wellness needs and procedures and allows you to make convenient monthly payments.",
+    "application_link": "https://pay.withcherry.com/tonybart?utm_source=merchant&utm_medium=website"
+  },
+   "consultation": {
+    "type": "FREE ZOOM CONSULTATION",
+    "description": [
+        "If you have any questions about different technique or not sure which technique is better for your type of skin.",
+        "if you have any questions about group or private classes"
+    ]
+  },
+
+  "contact": {
+    "phone": "+17278880088",
+    "address": "315 West 39th Street office 607, New York, NY, USA",
+    "website": "www.tonybartnewyork.com/"
+  }
+}
