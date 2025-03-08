@@ -7,14 +7,68 @@ import database
 import ai
 import time
 import random
+from collections import defaultdict
+import threading
 
 load_dotenv(override=True)
 
 owner_id = os.environ.get("owner_id")
 
+# Message batching system
+message_batches = defaultdict(list)
+batch_timers = {}
+batch_locks = defaultdict(threading.Lock)
+BATCH_WINDOW = 3  # seconds to wait for related messages
+
+def process_message_batch(sender_id):
+    """Process a complete batch of messages from a sender"""
+    with batch_locks[sender_id]:
+        if sender_id in message_batches and message_batches[sender_id]:
+            # Combine all messages in the batch
+            combined_prompt = []
+            
+            # First add all text messages
+            for message_obj in message_batches[sender_id]:
+                message = message_obj["message"]
+                # Check if it has text
+                if "text" in message:
+                    combined_prompt.append({"text": message["text"]})
+            
+            # Then add all images
+            for message_obj in message_batches[sender_id]:
+                message = message_obj["message"]
+                attachments = message.get("attachments", None)
+                if attachments:
+                    for attachment in attachments:
+                        if attachment["type"] == "image":
+                            image_url = attachment["payload"]["url"]
+                            combined_prompt.append({
+                                "inline_data": {
+                                    "mime_type": "image/jpeg",
+                                    "data": actions.image_to_base64(image_url)
+                                }
+                            })
+            
+            # Clear the batch
+            message_batches[sender_id] = []
+            
+            # Only proceed if we have content
+            if combined_prompt:
+                # Add the combined message to the conversation
+                database.add_message(sender_id, combined_prompt, "user")
+                
+                # Process with AI
+                llm = ai.llm()
+                latest_conversation = database.get_conversation(sender_id)
+                print("Processing combined batch conversation:", latest_conversation)
+                response = llm.generate_response(sender_id, latest_conversation)
+                
+                # Save and send the response
+                ai_response = [{"text": response}]
+                database.add_message(sender_id, ai_response, "model")
+                actions.send_text_message(sender_id, response)
+
 def process_messages(request):
-    code = random.randint(0,10)
-    print(f"Function {code} started!")
     owner_id = request["entry"][0]["id"]
     sender = request["entry"][0]["messaging"][0]["sender"]["id"]
     receiver = request["entry"][0]["messaging"][0]["recipient"]["id"]
@@ -22,44 +76,27 @@ def process_messages(request):
 
     if sender == str(owner_id):  # The owner sent a message
         print(f"Message sent to {receiver}")
+        return
+        
     if receiver == str(owner_id):  # The owner received a message
         print(f"Message received from {sender}")
-
-        prompt = []
-        message = message_obj["message"]
-        attachments = message.get("attachments", None)
-        if attachments:
-            for attachment in attachments:
-                if attachment["type"] == "image":
-                    image_url = attachment["payload"]["url"]
-                    prompt.append({
-                          "inline_data": {
-                            "mime_type":"image/jpeg",
-                            "data": actions.image_to_base64(image_url)
-                          }})
-        else:
-            prompt.append({"text": message["text"]})
-
-        current_conversation = database.add_message(sender, prompt, "user")
-        print(f"function {code} saved the message!")
-
-        # Use asyncio.sleep instead of time.sleep for async execution
-        time.sleep(5)
         
-        latest_conversation = database.get_conversation(sender)
-
-        print(f"comparing the old convo: {current_conversation}\nlatest convo:{latest_conversation}")
-        if current_conversation == latest_conversation:
-            llm = ai.llm()
-            print("Conversation going to the ai:", latest_conversation)
-            response = llm.generate_response(sender,latest_conversation) 
-            ai_response = [{"text":response}]
-
-            database.add_message(sender,ai_response,"model")
-
-            actions.send_text_message(sender,response)
-        else:
-            print(f"function {code} is late!")
+        # Add this message to the sender's batch
+        with batch_locks[sender]:
+            message_batches[sender].append(message_obj)
+            
+            # If this is the first message in the batch, start a timer
+            if sender in batch_timers and batch_timers[sender].is_alive():
+                # Timer already running, don't need to start a new one
+                pass
+            else:
+                # Start a new timer
+                batch_timers[sender] = threading.Timer(
+                    BATCH_WINDOW, 
+                    process_message_batch, 
+                    args=[sender]
+                )
+                batch_timers[sender].start()
 
 if __name__ == "__main__":
     database.reset_conversation(1660159627957434)

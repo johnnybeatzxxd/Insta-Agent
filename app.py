@@ -4,11 +4,16 @@ import os
 from dotenv import load_dotenv
 from message_manager import process_messages
 import threading
+import time
 
 # Load environment variables
 load_dotenv(override=True)
 
 app = Flask(__name__)
+
+# Add at the top of app.py
+processed_message_ids = {}
+MESSAGE_EXPIRY = 60  # seconds to remember processed messages
 
 @app.route("/")
 def hello_world():
@@ -24,17 +29,37 @@ def privacy_policy():
 def webhook():
     if request.method == "POST":
         try:
-            print(json.dumps(request.get_json(), indent=4))
             notification = request.get_json()
-            is_message = notification["entry"][0].get("messaging",None)
+            print(json.dumps(notification, indent=4))
+            
+            # Check if this is a messaging notification
+            is_message = notification["entry"][0].get("messaging", None)
             if is_message is not None:
-                thread = threading.Thread(target=process_messages,args=(notification,))
+                # Extract message ID for deduplication
+                message_id = notification["entry"][0]["messaging"][0]["message"].get("mid")
+                
+                # Check if we've already processed this message
+                current_time = time.time()
+                if message_id in processed_message_ids:
+                    print(f"Skipping duplicate message: {message_id}")
+                    return "OK", 200
+                
+                # Mark this message as processed
+                processed_message_ids[message_id] = current_time
+                
+                # Clean up old message IDs
+                for mid in list(processed_message_ids.keys()):
+                    if current_time - processed_message_ids[mid] > MESSAGE_EXPIRY:
+                        del processed_message_ids[mid]
+                
+                # Process the message
+                thread = threading.Thread(target=process_messages, args=(notification,))
                 thread.start()
-                # process_messages(notification)
+            
         except Exception as e:
-            print("error:",e)
-        print("returning 200!")
-        return "<p>This is POST Request, Hello Webhook!</p>"
+            print("Error:", e)
+        
+        return "OK", 200
     
     if request.method == "GET":
         hub_mode = request.args.get("hub.mode")
