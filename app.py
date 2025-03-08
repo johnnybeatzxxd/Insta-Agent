@@ -3,6 +3,7 @@ from flask import Flask, request, jsonify
 import os
 from dotenv import load_dotenv
 from message_manager import process_messages
+import threading
 
 # Load environment variables
 load_dotenv(override=True)
@@ -26,11 +27,13 @@ def webhook():
             print(json.dumps(request.get_json(), indent=4))
             notification = request.get_json()
             is_message = notification["entry"][0].get("messaging",None)
-            print(is_message)
             if is_message is not None:
-                process_messages(notification)
+                thread = threading.Thread(target=process_messages,args=(notification,))
+                thread.start()
+                # process_messages(notification)
         except Exception as e:
             print("error:",e)
+        print("returning 200!")
         return "<p>This is POST Request, Hello Webhook!</p>"
     
     if request.method == "GET":

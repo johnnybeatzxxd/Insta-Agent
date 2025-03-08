@@ -2,6 +2,7 @@ import json
 import requests
 import os 
 from dotenv import load_dotenv
+import base64
 
 load_dotenv(override=True)
 
@@ -59,3 +60,12 @@ def send_text_message(recipient_id, message_text):
     except requests.exceptions.RequestException as e:
         print(f"Error sending message: {str(e)}")
         return None
+
+def image_to_base64(image_url):
+    response = requests.get(image_url)
+    if response.status_code == 200:
+        return base64.b64encode(response.content).decode('utf-8')
+    else:
+        return None
+
+
