@@ -3,6 +3,7 @@ import requests
 import os 
 from dotenv import load_dotenv
 import base64
+import database
 
 load_dotenv(override=True)
 
@@ -158,5 +159,21 @@ def image_to_base64(image_url):
     else:
         return None
 
+def get_conversations():
+
+    access_token = os.environ.get("long_access_token")
+    url = f"https://graph.instagram.com/v22.0/me/conversations"
+    payload = {
+        "platform": "instagram",
+        "fields":  "participants,message,messages{created_time,from,message,reactions,shares,attachments}",
+        "access_token": access_token
+        }
+    response = requests.get(url, params=payload)
+    data = response.json()
+    print(json.dumps(data, indent=4))
+
 if __name__ == "__main__":
-    send_text_message(1660159627957434,"""Based on the image you provided, it looks like you might be interested in enhancing your eyebrows and perhaps your lips.\n\nFor your eyebrows, considering their current shape and fullness, a few options could be suitable:\n\n*   **Nano Brows:** This technique is excellent for all skin types and creates very natural-looking, hair-like strokes using a machine. It is a good option to define brow.\n*    **Microblading:** This will give more hair like strokes, however, you have oily skin. so this is not the best option.\n*   **Ombre Brows:** This technique creates a soft, shaded look, similar to filled-in brows with makeup. It's also suitable for all skin types and lasts longer than microblading. It would give your brows a more defined, \"filled-in\" look.\n* **Combo Brows:**:This is also a good option since it combines both strokes and shading.\n\nFor your lips, the **Lip Blush** service could be a good fit. It can add a subtle color and definition, enhancing their natural shape.\n\nTo give you the *best* recommendation, could you tell me what kind of look you're hoping to achieve? Are you looking for something very natural, or a bit more defined?\n""")
+    database.reset_conversation("1660159627957434")
+    print("database gone!")
+    # get_conversations()
+

@@ -36,7 +36,7 @@ def webhook():
             is_message = notification["entry"][0].get("messaging", None)
             if is_message is not None:
                 # Extract message ID for deduplication
-                message_id = notification["entry"][0]["messaging"][0]["message"].get("mid")
+                message_id = notification["entry"][0]["messaging"][0]["message"].get("text")
                 
                 # Check if we've already processed this message
                 current_time = time.time()

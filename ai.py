@@ -59,7 +59,7 @@ class llm:
     def __init__(self):
         self.responseType = "text"
         self.function_descriptions = function_descriptions
-        self.instruction = """You are the helpful and friendly AI assistant for Bartaesthetics, a beauty salon.
+        self.instruction = """You are the helpful and friendly assistant for Bartaesthetics, a beauty salon.
             Your primary goal is to assist customers with their questions and needs in a way that feels welcoming, professional, and efficient.
             Always be polite and use positive language. Speak concisely and clearly; avoid overly technical jargon unless the customer demonstrates understanding of it.
             Think of yourself as a virtual receptionist.if the conversation is new explain yourself who you are and who you work for.
@@ -253,6 +253,12 @@ class llm:
         
         # If no function calls, return the text directly
         if not has_function_calls:
+            # Structure the response properly before returning and saving
+            response_message = {
+                "role": "model",
+                "parts": [{"text": text_content.strip()}]
+            }
+            database.add_message(_id, [response_message], "model")
             return text_content.strip()
             
         # Process parallel function calls
@@ -312,6 +318,12 @@ class llm:
                     if final_data and "candidates" in final_data:
                         # Get the final text response after AI has processed function results
                         final_text = final_data["candidates"][0]["content"]["parts"][0]["text"]
+                        # Structure the final response properly
+                        response_message = {
+                            "role": "model",
+                            "parts": [{"text": final_text}]
+                        }
+                        database.add_message(_id, [response_message], "model")
                         return final_text
                     else:
                         print("Empty final response, retrying...")
@@ -326,7 +338,14 @@ class llm:
                 time.sleep(5)
         
         # If final request fails, return the original text response as a fallback
-        return text_content.strip() if text_content else "Sorry, I couldn't process the response at this time."
+        final_response = text_content.strip() if text_content else "Sorry, I couldn't process the response at this time."
+        # Structure the final response properly
+        response_message = {
+            "role": "model",
+            "parts": [{"text": final_response}]
+        }
+        database.add_message(_id, [response_message], "model")
+        return final_response
 
 # messages = [] 
 # while True:

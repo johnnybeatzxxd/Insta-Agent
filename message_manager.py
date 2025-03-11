@@ -18,21 +18,21 @@ owner_id = os.environ.get("owner_id")
 message_batches = defaultdict(list)
 batch_timers = {}
 batch_locks = defaultdict(threading.Lock)
-BATCH_WINDOW = 3  # seconds to wait for related messages
+BATCH_WINDOW = 10  # seconds to wait for related messages
 
 def process_message_batch(sender_id):
     """Process a complete batch of messages from a sender"""
     with batch_locks[sender_id]:
         if sender_id in message_batches and message_batches[sender_id]:
             # Combine all messages in the batch
-            combined_prompt = []
+            combined_messages = []
             
             # First add all text messages
             for message_obj in message_batches[sender_id]:
                 message = message_obj["message"]
                 # Check if it has text
                 if "text" in message:
-                    combined_prompt.append({"text": message["text"]})
+                    combined_messages.append({"role":"user","parts":[{"text": message["text"]}]})
             
             # Then add all images
             for message_obj in message_batches[sender_id]:
@@ -42,7 +42,9 @@ def process_message_batch(sender_id):
                     for attachment in attachments:
                         if attachment["type"] == "image":
                             image_url = attachment["payload"]["url"]
-                            combined_prompt.append({
+                            last_message =  combined_messages[:1]["parts"]
+
+                            last_message.append({
                                 "inline_data": {
                                     "mime_type": "image/jpeg",
                                     "data": actions.image_to_base64(image_url)
@@ -53,9 +55,9 @@ def process_message_batch(sender_id):
             message_batches[sender_id] = []
             
             # Only proceed if we have content
-            if combined_prompt:
+            if combined_messages:
                 # Add the combined message to the conversation
-                database.add_message(sender_id, combined_prompt, "user")
+                database.add_message(sender_id, combined_messages, "user")
                 
                 # Process with AI
                 llm = ai.llm()
@@ -64,8 +66,6 @@ def process_message_batch(sender_id):
                 response = llm.generate_response(sender_id, latest_conversation)
                 
                 # Save and send the response
-                ai_response = [{"text": response}]
-                database.add_message(sender_id, ai_response, "model")
                 actions.send_text_message(sender_id, response)
 
 def process_messages(request):

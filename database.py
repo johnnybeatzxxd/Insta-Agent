@@ -20,21 +20,23 @@ def register(_id):
     if existance == None:
         Users.insert_one({"_id":_id,"conversation":[]})
     
-def add_message(_id, message, role):
-    """Adds a message, creating the user document if it doesn't exist."""
+def add_message(_id, messages, role=None):
+    """Adds messages to conversation, handling both single and bulk operations."""
     try:
+        # Handle legacy single message format
+        if not role:
+            messages = [{"role": role, "parts": messages}]
+        
         Users.update_one(
             {"_id": _id},
-            {
-                "$push": {"conversation": {"role": role, "parts": message}}
-            },
+            {"$push": {"conversation": {"$each": messages}}},
             upsert=True
         )
 
         user = Users.find_one({"_id": _id}, {"conversation": 1, "_id": 0})
         return user["conversation"]
     except Exception as e:
-        print(f"Error adding message: {e}")
+        print(f"Error adding messages: {e}")
         return []
 
 def set_user_info(_id,info):
