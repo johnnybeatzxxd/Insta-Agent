@@ -77,7 +77,7 @@ def send_text_message(recipient_id, message_text):
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    print("headers", headers)
+    
     
     # Send each chunk as a separate message
     for chunk in message_chunks:
@@ -92,6 +92,8 @@ def send_text_message(recipient_id, message_text):
         }
         
         # Send POST request
+        print(chunk)
+        continue
         try:
             response = requests.post(
                 url,

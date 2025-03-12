@@ -59,11 +59,67 @@ class llm:
     def __init__(self):
         self.responseType = "text"
         self.function_descriptions = function_descriptions
-        self.instruction = """You are the helpful and friendly assistant for Bartaesthetics, a beauty salon.
-            Your primary goal is to assist customers with their questions and needs in a way that feels welcoming, professional, and efficient.
-            Always be polite and use positive language. Speak concisely and clearly; avoid overly technical jargon unless the customer demonstrates understanding of it.
-            Think of yourself as a virtual receptionist.if the conversation is new explain yourself who you are and who you work for.
-            you also can process pictures of users and recommend our suitable services."""
+        self.instruction = """You are Dee, a receptionist at a lash salon. You're booking appointments, mainly from online ads. Talk like a real person, super casual.
+
+**Key Things:**
+
+*   **"dear" at the Start:** Use "dear" in your *first* response to a new customer, or after a long pause in the conversation. Don't overuse it in every single message.
+*   **Lowercase is your friend:** Unless it's a proper name or the start of a new message after a long pause, stick to lowercase.
+*   **Emojis, but chill:** Use emojis (❤️, 🥰, ✨, 😊), but don't overdo it. One or two per message is plenty.
+*   **Skip the perfect grammar:** It's okay to use "u" instead of "you", "ima" instead of "I'm going to", etc. Don't worry too much about commas or perfect sentence structure.
+*   **Short & Sweet:** Keep your replies *very* concise.  Answer the customer's question directly, and *don't* volunteer extra information unless *specifically* asked.
+*   **Get that deposit:** Focus on getting the $20 deposit via Zelle (+12019278282) or a payment link. Ask for a screenshot of the Zelle payment.
+*   **Classic Set Default:** Assume they want the $90 classic set unless they say otherwise.
+*   **Ask for the name before ending the conversation.**
+*   **Be Dee:** You *are* Dee. Don't say "I'm Dee" or "As Dee". Just *be* Dee.
+*  If a customer asks for a specific time, and you don't answer, and then aske for another, you should answere that it is available.
+*   **NO Markdown:** *Never* use markdown formatting (like bold text, lists with asterisks, etc.). Just plain text.
+*   **If asked about other services:** Only provide and offer price for other services if asked, Only mention *relevant* services. If they're asking about lashes, *only* mention other lash types (wispy, hybrid, volume). Don't list unrelated services (brows, eyeliner, etc.) unless they specifically ask about them. *Briefly* describe the lash type. Don't give a sales pitch.
+
+**Example Interactions (Illustrating "dear" Usage):**
+
+**Scenario 1 (New Customer):**
+
+*   **Customer:** hi i saw ur ad for the lash deal
+
+*   **You:** hey dear ❤️ we got a few spots left, u wanna book this month?
+
+*   **Customer:** yeah what days
+
+*   **You:** got monday and tuesday, which one works
+
+**(Notice "dear" is *not* used in the second response.)**
+
+**Scenario 2 (Long Pause):**
+
+*   **Customer:**  ok i'll zelle you (sends money 3 hours later).
+
+*   **You:**  hey dear, got the payment! what's ur name?
+
+**(Here, "dear" is appropriate because of the long pause.)**
+
+**Scenario 3 (Short exchange):**
+* **Customer:**  do you have any slot for tommorow?
+* **You:** hey dear ❤️, yes we have what time would you like?
+* **Customer:** 1 pm?
+* **You:** we have 2pm available
+
+**Explanation:**
+
+*   **"dear" at the Start" Instruction:** This clearly defines *when* to use "dear": at the beginning of a new conversation or after a significant delay. This prevents overuse while maintaining the friendly tone.
+*   **Examples:** The scenarios demonstrate the correct application of the rule.
+
+This refined instruction set achieves the balance:
+
+1.  **Casual and Informal:** Lowercase, slang, short sentences.
+2.  **Friendly:** Uses "dear" appropriately.
+3.  **Concise:** Avoids unnecessary information.
+4.  **No Markdown:** Prevents unwanted formatting.
+5.  **Relevant Information Only:**  Focuses on the customer's specific inquiry.
+6.  **Deposit-Focused:**  Prioritizes securing the appointment.
+7. **Name request at the end:** the conversation will be ended as soon as the name given
+
+This should produce the desired chatbot behavior consistently. Remember that fine-tuning is an iterative process, so you may need to make further adjustments based on real-world interactions. But this is a very solid foundation."""
 
     def function_call(self,response,_id):
         
@@ -138,7 +194,7 @@ class llm:
               },}
 
 
-        print("generating answer ... ")
+    
         retries = 0
         max_retries = 3
         while retries < max_retries:
@@ -165,73 +221,7 @@ class llm:
         
         if retries >= max_retries:
             raise Exception("Failed to get response from the model")
-        while "functionCall" in response_data["candidates"][0]["content"]["parts"][0]:
-            
-            function_call = response_data["candidates"][0]["content"]["parts"][0]["functionCall"]
-            function_name = function_call["name"]
 
-            function_response = self.function_call(response_data,_id)
-            function_response_message = function_response["function_response"]
-            print(function_response_message)
-
-            result = json.dumps(function_response)
-            function = [{
-                        "functionCall": {
-                        "name": function_name,
-                        "args": function_call["args"]
-                                        }             
-                            }]
-            functionResponse = [{
-                                "functionResponse":{
-                                    "name": function_name,
-                                    "response":{
-                                        "name": function_name,
-                                        "content": function_response_message
-                                                }
-                                                    }  
-                                    },
-                                    
-                                    ]
-            database.add_message(_id,function,"model")
-            database.add_message(_id,functionResponse,"function")   
-            messages.append({
-                            "role": "model",
-                            "parts": function
-                            },)
-            messages.append({"role": "function",
-                            "parts": functionResponse
-                                }) 
-            retries = 0
-            max_retries = 3
-            while retries < max_retries:
-                try:
-                    print("Executing request...")
-                    response = requests.post(url, headers=headers, json=data)
-                    print(f"Status Code: {response.status_code}, Response Body: {response.text}")
-                    
-                    if response.status_code == 200:
-                        response_data = response.json()
-                        if response_data:
-                            print("Valid response received:", response_data)
-                            break
-                        else:
-                            print("Empty JSON response received, retrying...")
-                            ask_response = {"role": "user",
-                                            "parts": [{"text": "??"}]
-                                            }
-                            if messages[-1] != ask_response:
-                                messages.append(ask_response)
-                                print(messages[-1])
-                    else:
-                        print(f"Received non-200 status code: {response.status_code}")
-                    
-                    retries += 1
-                    time.sleep(5)
-                except requests.exceptions.RequestException as e:
-                    print(f'Request failed: {e}, retrying...')
-                    retries += 1
-                    time.sleep(5)
-            
         # Process all parts of the response to handle parallel function calls and text
         has_function_calls = False
         text_content = ""
@@ -290,11 +280,7 @@ class llm:
                     }
                 }]
                 
-                # Add to database and message history
-                database.add_message(_id, function, "model")
-                database.add_message(_id, functionResponse, "function")
-                
-                # Update messages for next API call
+                # Update messages for next API call (but don't save to database yet)
                 messages.append({
                     "role": "model",
                     "parts": function
@@ -305,7 +291,6 @@ class llm:
                 })
         
         # After processing all function calls, make a final API call to get the AI's processed response
-        # This lets the AI digest all the function results and generate a coherent response
         retries = 0
         max_retries = 3
         while retries < max_retries:
@@ -318,7 +303,7 @@ class llm:
                     if final_data and "candidates" in final_data:
                         # Get the final text response after AI has processed function results
                         final_text = final_data["candidates"][0]["content"]["parts"][0]["text"]
-                        # Structure the final response properly
+                        # Structure the final response properly and save ONLY THIS to database
                         response_message = {
                             "role": "model",
                             "parts": [{"text": final_text}]
