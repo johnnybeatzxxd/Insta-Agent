@@ -17,7 +17,7 @@
     },
     {
       "name": "COMBO BROWS W MACHINE",
-      "price": 650,
+      "price": 550,
       "deposit": 100,
       "description": "Combo brows is hairstrokes in the front done with machine & shading at the rest of the brows. Last 3-4 years. Custom shape & color.",
       "suitable_for": "All skin types"
@@ -25,13 +25,13 @@
     },
     {
       "name": "COLOR CORRECTION ON PREVIOUS WORK",
-      "price": 700,
+      "price": 550,
       "deposit": 100,
       "description": ""
     },
     {
       "name": "MICROBLADING BY TONY",
-      "price": 500,
+      "price": 550,
       "deposit": 100,
       "description": "The most natural technique that mimic your natural hairs throughout the whole brow. Hairstrokes done with the blade. Touch up is recommended within 4 weeks ($100).",
       "duration": "1.5 hours",
@@ -40,7 +40,7 @@
     },
     {
       "name": "OMBRÉ BY TONY",
-      "price": 600,
+      "price": 550,
       "deposit": 100,
       "description": "Ombré Powder Brows, also known as Powdered Brows are a semi-permanent eyebrow. Ombré Brows creates a soft shaded brow pencil look.  Procedure takes around 1.5-2 Hours. Lasts 3-4 years with proper aftercare & pre-care.  Touch up is recommended within 4 weeks ($150).",
       "suitable_for": "All skin types"
@@ -86,6 +86,62 @@
       "name": "EMSculpt (package of 3 sessions)",
       "price": 270,
       "deposit": 100
+
+    },
+    {
+      "name": "Eyelash Extensions - Classic Set",
+      "price": 130,
+       "original_price": 150,
+      "deposit": 50
+    },
+    {
+      "name": "Eyelash Extensions - Hybrid",
+      "price": 140,
+      "original_price": 160,
+      "deposit": 50
+    },
+    {
+      "name": "Eyelash Extensions - 2-3D",
+      "price": 150,
+       "original_price": 170,
+      "deposit": 50
+    },
+    {
+      "name": "Eyelash Extensions - 4-6D",
+      "price": 170,
+      "original_price": 190,
+      "deposit": 50
+    },
+    {
+      "name": "Eyelash Extensions - Mega Volume",
+      "price": 190,
+       "original_price": 210,
+      "deposit": 50
+    },
+      {
+      "name": "EMSculpt - 1 Session",
+      "price": 190,
+       "deposit": 50,
+       "discount" : null
+
+    },
+      {
+      "name": "EMSculpt - 3 Session Package",
+      "price": 500,
+       "deposit": 100,
+        "discount" : null
+
+    },
+      {
+      "name": "EMSculpt - 5 Session Package",
+      "price": 750,
+        "deposit": 100,
+         "discount" : null
+    },
+    {
+      "name": "Scalp Micropigmentation - Full Head",
+      "price": 1700,
+        "deposit": 200
 
     }
   ],
