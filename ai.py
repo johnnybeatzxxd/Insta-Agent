@@ -1,4 +1,5 @@
 import json
+from logging import raiseExceptions
 import database
 import datetime
 import time
@@ -11,7 +12,7 @@ import functions
 load_dotenv(override=True)
 
 gemini_api_key = os.environ.get('GeminiProKey')
-url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-pro-exp-02-05:generateContent?key={}".format(gemini_api_key)
+url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={}".format(gemini_api_key)
 headers = {"Content-Type": "application/json",}
 
 
@@ -168,7 +169,7 @@ class llm:
         
         # Check if we have a valid response
         if not response_data or "candidates" not in response_data:
-            return "Sorry, I couldn't generate a response at this time."
+            raise Exception("Sorry, I couldn't generate a response at this time.")
             
         parts = response_data["candidates"][0]["content"]["parts"]
         
