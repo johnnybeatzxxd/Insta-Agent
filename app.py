@@ -78,12 +78,6 @@ def health_check():
 
 
 
-@app.route('/dashboard-stats/<id>', methods=['GET'])
-def dashboard(id):
-    # Here you can add logic to retrieve and display the dashboard for the given id
-    return jsonify({'message': f'Dashboard for ID: {id}'}), 200
-# Health check endpoint
-
 @app.route('/dashboard-customers/<id>', methods=['GET'])
 def dashboard(id):
     # Here you can add logic to retrieve and display the dashboard for the given id
