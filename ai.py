@@ -125,7 +125,7 @@ class llm:
             },
         ],
                 "generationConfig": {
-                "temperature": 0.2,
+                "temperature": 0.1,
                 "topK": 1,
                 "topP": 1,
                 "maxOutputTokens": 2048,
