@@ -2,10 +2,12 @@ import requests
 import json
 import datetime
 import calendar
+import database
 
 def get_information(key):
-    with open("info.json","r",encoding='utf-8') as info:
-        info = json.load(info)
+    info = database.get_dataset()
+    # with open("info.json","r",encoding='utf-8') as info:
+    #     info = json.load(info)
     return info[key]
 
 def get_next_weekday_date(weekday_name, reference_date=None):

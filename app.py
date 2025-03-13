@@ -69,11 +69,36 @@ def webhook():
             return hub_challenge
         else:
             return "<p>This is GET Request, Hello Webhook!</p>"
-
-# Health check endpoint
+        
+        
 @app.route('/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'healthy'}), 200
+
+
+
+
+@app.route('/dashboard-stats/<id>', methods=['GET'])
+def dashboard(id):
+    # Here you can add logic to retrieve and display the dashboard for the given id
+    return jsonify({'message': f'Dashboard for ID: {id}'}), 200
+# Health check endpoint
+
+@app.route('/dashboard-/<id>', methods=['GET'])
+def dashboard(id):
+    # Here you can add logic to retrieve and display the dashboard for the given id
+    return jsonify({'message': f'Dashboard for ID: {id}'}), 200
+# Health check endpoint
+
+@app.route('/dashboard-stats/<id>', methods=['GET'])
+def dashboard(id):
+    # Here you can add logic to retrieve and display the dashboard for the given id
+    return jsonify({'message': f'Dashboard for ID: {id}'}), 200
+# Health check endpoint
+
+
+
+
 
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))

@@ -23,49 +23,18 @@ BATCH_WINDOW = 5  # seconds to wait for related messages
 def process_message_batch(sender_id):
     """Process a complete batch of messages from a sender"""
     with batch_locks[sender_id]:
-        if sender_id in message_batches and message_batches[sender_id]:
-            # Combine all messages in the batch
-            combined_messages = []
-            
-            # First add all text messages
-            for message_obj in message_batches[sender_id]:
-                message = message_obj["message"]
-                # Check if it has text
-                if "text" in message:
-                    combined_messages.append({"role":"user","parts":[{"text": message["text"]}]})
-            
-            # Then add all images
-            for message_obj in message_batches[sender_id]:
-                message = message_obj["message"]
-                attachments = message.get("attachments", None)
-                if attachments:
-                    for attachment in attachments:
-                        if attachment["type"] == "image":
-                            image_url = attachment["payload"]["url"]
-                            last_message =  combined_messages[:1]["parts"]
-
-                            last_message.append({
-                                "inline_data": {
-                                    "mime_type": "image/jpeg",
-                                    "data": actions.image_to_base64(image_url)
-                                }
-                            })
-            
-            # Clear the batch
+        if sender_id in message_batches:
+            # Clear the batch (messages already saved individually)
             message_batches[sender_id] = []
             
-            # Only proceed if we have content
-            if combined_messages:
-                # Add the combined message to the conversation
-                database.add_message(sender_id, combined_messages, "user")
+            if database.check_user_active(sender_id):
+                # Get conversation from database
+                latest_conversation = database.get_conversation(sender_id)
+                print("Processing batched conversation:", latest_conversation)
                 
                 # Process with AI
                 llm = ai.llm()
-                latest_conversation = database.get_conversation(sender_id)
-                print("Processing combined batch conversation:", latest_conversation)
                 response = llm.generate_response(sender_id, latest_conversation)
-                
-                # Save and send the response
                 actions.send_text_message(sender_id, response)
 
 def process_messages(request):
@@ -76,6 +45,11 @@ def process_messages(request):
 
     if sender == str(owner_id):  # The owner sent a message
         print(f"Message sent to {receiver}")
+        message = {
+                "role": "model",
+                "parts": [{"text": message_obj["message"]["text"]}]
+            }
+        database.add_message(receiver, [message], "model")
         return
         
     if receiver == str(owner_id):  # The owner received a message
@@ -84,6 +58,29 @@ def process_messages(request):
         # Add this message to the sender's batch
         with batch_locks[sender]:
             message_batches[sender].append(message_obj)
+            
+            # Immediately save the message to database
+            message = message_obj["message"]
+            parts = []
+            
+            # Handle text content
+            if "text" in message:
+                parts.append({"text": message["text"]})
+            
+            # Handle image attachments
+            attachments = message.get("attachments", [])
+            for attachment in attachments:
+                if attachment["type"] == "image":
+                    parts.append({
+                        "inline_data": {
+                            "mime_type": "image/jpeg",
+                            "data": actions.image_to_base64(attachment["payload"]["url"])
+                        }
+                    })
+            
+            if parts:  # Only save if we have content
+                user_message = [{"role": "user", "parts": parts}]
+                database.add_message(sender, user_message, "user")
             
             # If this is the first message in the batch, start a timer
             if sender in batch_timers and batch_timers[sender].is_alive():
