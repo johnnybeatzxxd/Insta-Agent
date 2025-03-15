@@ -5,6 +5,9 @@ from dotenv import load_dotenv
 from message_manager import process_messages
 import threading
 import time
+import database
+import actions
+import dashboard
 
 # Load environment variables
 load_dotenv(override=True)
@@ -75,18 +78,43 @@ def webhook():
 def health_check():
     return jsonify({'status': 'healthy'}), 200
 
+@app.route("/signup",methods=['POST'])
+def signup():
+    if request.method == "POST":
+        creds = request.get_json()
+        email = creds.get("email")
+        password = creds.get("password")
+
+    return jsonify({'stats':'logged in'}), 200
+@app.route('/login',methods=['POST'])
+def login():
+    if request.method == "POST":
+        creds = request.get_json()
+        email = creds.get("email")
+        password = creds.get("password")
 
 
+    return jsonify({'stats':'logged in'}), 200
 
-@app.route('/dashboard-customers/<id>', methods=['GET'])
-def dashboard(id):
-    # Here you can add logic to retrieve and display the dashboard for the given id
-    return jsonify({'message': f'Dashboard for ID: {id}'}), 200
+@app.route('/dashboard', methods=['POST'])
+def dash():
+    if request.method == "POST":
+        creds = request.get_json()
+        cookie = creds["cookie"]
+        authentication = database.auth()
+        user = authentication.login(cookie=cookie)
+        if user is None:
+            return jsonify({'message': "wrong credentials"}), 400
 
+        user_id = user["_id"]
+        access_token = user["access_token"]
+        
+        if user:
+            response = dashboard.dashboard_stats(user_id,access_token)
+            print('this is the response:',response)
+            return jsonify({'data': response}), 200
 
-
-
-
+        return jsonify({'message': "Access Token Expired!"}), 400
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('DEBUG', 'True').lower() == 'true'
