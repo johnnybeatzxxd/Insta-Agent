@@ -160,9 +160,9 @@ def image_to_base64(image_url):
     else:
         return None
 
-def get_conversations():
+def get_conversations(access_token):
 
-    access_token = os.environ.get("long_access_token")
+    # access_token = os.environ.get("long_access_token")
     url = f"https://graph.instagram.com/v22.0/me/conversations"
     payload = {
         "platform": "instagram",
@@ -170,8 +170,11 @@ def get_conversations():
         "access_token": access_token
         }
     response = requests.get(url, params=payload)
-    data = response.json()
-    print(json.dumps(data, indent=4))
+    if response.status_code == 200:
+        data = response.json()
+        return data
+    return None
+ 
 
 if __name__ == "__main__":
     database.reset_conversation("1660159627957434")
