@@ -177,7 +177,6 @@ def get_conversations(access_token):
  
 
 if __name__ == "__main__":
-    database.reset_conversation("1660159627957434")
     print("database gone!")
     # get_conversations()
 

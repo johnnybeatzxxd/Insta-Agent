@@ -9,6 +9,7 @@ import time
 import random
 from collections import defaultdict
 import threading
+import datetime
 
 load_dotenv(override=True)
 
@@ -20,21 +21,21 @@ batch_timers = {}
 batch_locks = defaultdict(threading.Lock)
 BATCH_WINDOW = 5  # seconds to wait for related messages
 
-def process_message_batch(sender_id):
+def process_message_batch(sender_id,owner_id):
     """Process a complete batch of messages from a sender"""
     with batch_locks[sender_id]:
         if sender_id in message_batches:
             # Clear the batch (messages already saved individually)
             message_batches[sender_id] = []
             
-            if database.check_user_active(sender_id):
+            if database.check_user_active(sender_id,owner_id):
                 # Get conversation from database
-                latest_conversation = database.get_conversation(sender_id)
+                latest_conversation = database.get_conversation(sender_id,owner_id)
                 print("Processing batched conversation:", latest_conversation)
                 
                 # Process with AI
-                llm = ai.llm()
-                response = llm.generate_response(sender_id, latest_conversation)
+                llm = ai.llm(owner_id)
+                response = llm.generate_response(sender_id, latest_conversation,owner_id)
                 actions.send_text_message(sender_id, response)
 
 def process_messages(request):
@@ -45,11 +46,14 @@ def process_messages(request):
 
     if sender == str(owner_id):  # The owner sent a message
         print(f"Message sent to {receiver}")
+        msg = message_obj["message"]["text"]
+        today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        msg = f"{today}\n{msg}"
         message = {
                 "role": "model",
-                "parts": [{"text": message_obj["message"]["text"]}]
+                "parts": [{"text": msg}]
             }
-        database.add_message(receiver, [message], "model")
+        database.add_message(receiver, [message], owner_id,"model")
         return
         
     if receiver == str(owner_id):  # The owner received a message
@@ -62,10 +66,12 @@ def process_messages(request):
             # Immediately save the message to database
             message = message_obj["message"]
             parts = []
-            
+            msg = message["text"]
+            today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            msg = f"{today}\n{msg}"
             # Handle text content
             if "text" in message:
-                parts.append({"text": message["text"]})
+                parts.append({"text": msg})
             
             # Handle image attachments
             attachments = message.get("attachments", [])
@@ -80,7 +86,7 @@ def process_messages(request):
             
             if parts:  # Only save if we have content
                 user_message = [{"role": "user", "parts": parts}]
-                database.add_message(sender, user_message, "user")
+                database.add_message(sender, user_message,owner_id, "user")
             
             # If this is the first message in the batch, start a timer
             if sender in batch_timers and batch_timers[sender].is_alive():
@@ -91,7 +97,7 @@ def process_messages(request):
                 batch_timers[sender] = threading.Timer(
                     BATCH_WINDOW, 
                     process_message_batch, 
-                    args=[sender]
+                    args=[sender,owner_id]
                 )
                 batch_timers[sender].start()
 

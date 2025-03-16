@@ -1,5 +1,6 @@
 import json
 from flask import Flask, request, jsonify
+from flask_cors import CORS, cross_origin
 import os
 from dotenv import load_dotenv
 from message_manager import process_messages
@@ -13,7 +14,7 @@ import dashboard
 load_dotenv(override=True)
 
 app = Flask(__name__)
-
+cors = CORS(app)
 # Add at the top of app.py
 processed_message_ids = {}
 MESSAGE_EXPIRY = 60  # seconds to remember processed messages
@@ -60,7 +61,7 @@ def webhook():
                 thread.start()
             
         except Exception as e:
-            print("Error:", e)
+           print("Error:", e)
         
         return "OK", 200
     
@@ -82,25 +83,39 @@ def health_check():
 def signup():
     if request.method == "POST":
         creds = request.get_json()
+        _id = creds.get("_id")
         email = creds.get("email")
         password = creds.get("password")
+        access_token = creds.get("access_token")
+        
+        create_user = database.auth()
+        user = create_user.signup(_id,email,password,access_token)
 
-    return jsonify({'stats':'logged in'}), 200
+    return jsonify({'stats':'signed up'}), 200
 @app.route('/login',methods=['POST'])
 def login():
     if request.method == "POST":
         creds = request.get_json()
         email = creds.get("email")
         password = creds.get("password")
+        authenticate = database.auth()
+        user = authenticate.login(email=email,password=password)
+        
+        if user:
+            response = {"_id":user["_id"],"email":user["email"],"cookie":user["cookie"]}
+            return jsonify({'stats':'logged in','user':response}), 200
+        return jsonify({"message":'Invalid credentials!'}), 400
 
-
-    return jsonify({'stats':'logged in'}), 200
-
-@app.route('/dashboard', methods=['POST'])
+@app.route('/dashboard', methods=['GET'])
 def dash():
-    if request.method == "POST":
-        creds = request.get_json()
-        cookie = creds["cookie"]
+    if request.method == "GET":
+        # Get Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': "Missing or invalid Authorization header"}), 400
+            
+        cookie = auth_header.split(' ')[1]  # Extract token after 'Bearer '
+        
         authentication = database.auth()
         user = authentication.login(cookie=cookie)
         if user is None:
@@ -115,6 +130,27 @@ def dash():
             return jsonify({'data': response}), 200
 
         return jsonify({'message': "Access Token Expired!"}), 400
+
+@app.route('/customers',methods=['GET'])
+def cust():
+    if request.method == "GET":
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': "Missing or invalid Authorization header"}), 400
+            
+        cookie = auth_header.split(' ')[1]  # Extract token after 'Bearer '
+        
+        authentication = database.auth()
+        user = authentication.login(cookie=cookie)
+        if user is None:
+            return jsonify({'message': "wrong credentials"}), 400
+
+        user_id = user["_id"]
+        access_token = user["access_token"]
+        
+        if user:
+            
+            pass
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('DEBUG', 'True').lower() == 'true'

@@ -57,10 +57,11 @@ function_descriptions = [
 
 class llm:
 
-    def __init__(self):
+    def __init__(self,owner_id):
+        self.owner_id = owner_id
         self.responseType = "text"
         self.function_descriptions = function_descriptions
-        self.instruction = database.get_instruction()
+        self.instruction = database.get_instruction(owner_id)
 
     def function_call(self,response,_id):
         
@@ -74,7 +75,7 @@ class llm:
             info = function_args.get("info")
             
             if info:
-                returned_info = functions.get_information(info)
+                returned_info = functions.get_information(info,self.owner_id)
                 print(returned_info)
                 return {"function_response":str(returned_info),"image":None}
                 
@@ -93,7 +94,7 @@ class llm:
             return {"function_response":'function not found!'}
 
 
-    def generate_response(self,_id,messages):
+    def generate_response(self,_id,messages,owner_id):
         data = {
                 "contents": messages,
                 "system_instruction": {
@@ -189,7 +190,7 @@ class llm:
                 "role": "model",
                 "parts": [{"text": text_content.strip()}]
             }
-            database.add_message(_id, [response_message], "model")
+            database.add_message(_id,[response_message],owner_id,"model")
             return text_content.strip()
             
         # Process parallel function calls
@@ -249,7 +250,7 @@ class llm:
                             "role": "model",
                             "parts": [{"text": final_text}]
                         }
-                        database.add_message(_id, [response_message], "model")
+                        database.add_message(_id, [response_message], owner_id,"model")
                         return final_text
                     else:
                         print("Empty final response, retrying...")
@@ -270,7 +271,7 @@ class llm:
             "role": "model",
             "parts": [{"text": final_response}]
         }
-        database.add_message(_id, [response_message], "model")
+        database.add_message(_id, [response_message], owner_id,"model")
         return final_response
 
 # messages = [] 

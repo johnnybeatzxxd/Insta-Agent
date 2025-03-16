@@ -4,10 +4,10 @@ import datetime
 import calendar
 import database
 
-def get_information(key):
-    info = database.get_dataset()
-    # with open("info.json","r",encoding='utf-8') as info:
-    #     info = json.load(info)
+def get_information(key,owner_id):
+    info = database.get_dataset(owner_id)
+    if info is None:
+        return "data not found:"
     return info[key]
 
 def get_next_weekday_date(weekday_name, reference_date=None):
@@ -85,9 +85,53 @@ def availablity(date_input):
         url = f"https://www.schedulista.com/schedule/bartaesthetics/available_days_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592366&start_date={formatted_date}&time_zone=Eastern+Time+(US+%26+Canada)&scan_to_first_available=true"
 
     try:
-        response = requests.get(url)  # Use requests.get for GET requests
-        response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        return response.text
+        response = requests.get(url)
+        response.raise_for_status()
+        
+        # Parse the original JSON response
+        parsed_data = json.loads(response.text)
+        
+        # Process dates into human-readable format
+        processed = {
+            "today": {
+                "date": datetime.date.today().strftime("%Y-%m-%d"),
+                "day": datetime.date.today().strftime("%A")
+            }
+        }
+        
+        # Handle different response formats based on query type
+        if general:
+            # For "general" query - has available_days dictionary
+            processed["available_days"] = [
+                {
+                    "date": datetime.datetime.strptime(d, "%Y%m%d").strftime("%Y-%m-%d"),
+                    "day": datetime.datetime.strptime(d, "%Y%m%d").strftime("%A")
+                } for d in parsed_data.get("available_days", {}).keys()
+            ]
+            
+            if parsed_data.get("first_available_day"):
+                processed["first_available_day"] = {
+                    "date": datetime.datetime.strptime(
+                        parsed_data["first_available_day"], "%Y%m%d"
+                    ).strftime("%Y-%m-%d"),
+                    "day": datetime.datetime.strptime(
+                        parsed_data["first_available_day"], "%Y%m%d"
+                    ).strftime("%A")
+                }
+            else:
+                processed["first_available_day"] = None
+        else:
+            # For specific day query - has a list of available times
+            if isinstance(parsed_data, list):
+                processed["available_times"] = parsed_data
+            else:
+                # Handle unexpected response format
+                processed["raw_response"] = parsed_data
+        
+        return json.dumps(processed, indent=2)
+        
     except requests.exceptions.RequestException as e:
         return f"Error fetching availability: {e}"
 
+if __name__ == "__main__":
+    print(availablity('next monday'))

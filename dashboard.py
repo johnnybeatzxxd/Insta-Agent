@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime, timedelta
 
-cache_expiration_minutes = 2
+cache_expiration_minutes = 10
 
 def is_cache_valid(cache_file):
     """Check if cache file exists and is not expired"""
@@ -78,7 +78,6 @@ def dashboard_stats(owner_id,access_token):
     # Parse recent chats from filtered conversations
     recent_chats = parse_recent_chats(filtered_conversations, owner_id)
 
-    print(filtered_conversations)
     print(recent_chats)
     response = {
         "stats":[

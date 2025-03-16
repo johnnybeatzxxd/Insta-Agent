@@ -2,6 +2,8 @@ from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 import json
+
+from pymongo.synchronous import database
 import actions
 
 load_dotenv(override=True)
@@ -65,7 +67,7 @@ def set_instruction(_id,instruction):
     )
 
 def get_dataset(owner_id):
-    dataset_entry = Data.find_one({"_id":owner_id}, {"dataset": 1, "_id": 0})
+    dataset_entry = Data.find_one({"_id":owner_id})
     return dataset_entry.get("dataset") if dataset_entry else None
 
 def get_instruction(owner_id):
@@ -85,7 +87,7 @@ class auth:
             user = creds.find_one({"cookie":cookie})
         else:
             user = creds.find_one({"email":email,"password":password})
-
+            
         if user is None:
             return None
 
@@ -106,6 +108,6 @@ class auth:
                  }) 
 
 if __name__ == "__main__":
-    authentication = auth()
-    user = authentication.login("beauty.salon@gmail.com","beautysalon")
-    print(f"User:{user}")
+    pass
+    info = get_dataset(17841433182941465)
+    print(info)
