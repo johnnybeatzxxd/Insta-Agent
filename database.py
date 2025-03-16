@@ -67,7 +67,7 @@ def set_instruction(_id,instruction):
     )
 
 def get_dataset(owner_id):
-    dataset_entry = Data.find_one({"_id":owner_id})
+    dataset_entry = Data.find_one({"_id":int(owner_id)})
     return dataset_entry.get("dataset") if dataset_entry else None
 
 def get_instruction(owner_id):
