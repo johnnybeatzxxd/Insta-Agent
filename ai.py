@@ -234,7 +234,7 @@ class llm:
         
         # After processing all function calls, make a final API call to get the AI's processed response
         retries = 0
-        max_retries = 3
+        max_retries = 5
         while retries < max_retries:
             try:
                 print("Making final request with function responses...")
@@ -242,27 +242,50 @@ class llm:
                 
                 if final_response.status_code == 200:
                     final_data = final_response.json()
+                    print(f"Final response received: {json.dumps(final_data, indent=2)}")
+                    
                     if final_data and "candidates" in final_data:
-                        # Get the final text response after AI has processed function results
-                        final_text = final_data["candidates"][0]["content"]["parts"][0]["text"]
-                        # Structure the final response properly and save ONLY THIS to database
-                        response_message = {
-                            "role": "model",
-                            "parts": [{"text": final_text}]
-                        }
-                        database.add_message(_id, [response_message], owner_id,"model")
-                        return final_text
+                        # Check the structure of the response and handle different formats
+                        try:
+                            first_part = final_data["candidates"][0]["content"]["parts"][0]
+                            if "text" in first_part:
+                                final_text = first_part["text"]
+                            elif "functionCall" in first_part:
+                                # Handle case where final response is a function call
+                                function_name = first_part["functionCall"]["name"]
+                                final_text = f"Processing request to {function_name}..."
+                                # Process this additional function call if needed
+                            else:
+                                # If no recognizable part format, check all parts for text content
+                                final_text = ""
+                                for part in final_data["candidates"][0]["content"]["parts"]:
+                                    if "text" in part:
+                                        final_text += part["text"] + "\n"
+                                if not final_text:
+                                    final_text = "Received response in unexpected format."
+                                    
+                            # Structure the final response properly and save to database
+                            response_message = {
+                                "role": "model",
+                                "parts": [{"text": final_text}]
+                            }
+                            database.add_message(_id, [response_message], owner_id, "model")
+                            return final_text
+                        except (KeyError, IndexError) as e:
+                            print(f"Error parsing response: {e}")
+                            print(f"Response structure: {json.dumps(final_data, indent=2)}")
                     else:
                         print("Empty final response, retrying...")
                 else:
                     print(f"Received non-200 status code: {final_response.status_code}")
+                    print(f"Response body: {final_response.text}")
                 
                 retries += 1
-                time.sleep(5)
+                time.sleep(2)
             except requests.exceptions.RequestException as e:
                 print(f'Final request failed: {e}, retrying...')
                 retries += 1
-                time.sleep(5)
+                time.sleep(2)
         
         # If final request fails, return the original text response as a fallback
         final_response = text_content.strip() if text_content else "Sorry, I couldn't process the response at this time."
