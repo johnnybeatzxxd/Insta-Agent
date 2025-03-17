@@ -73,7 +73,9 @@ def availablity(date_input):
             return "Invalid date format. Please use YYYY-MM-DD or a weekday name."
 
     if not resolved_date:
-        return "Invalid date provided"
+        general = True
+        resolved_date = datetime.date.today()
+        date_input = "today"
 
     # Convert date to required format (YYYYMMDD)
     formatted_date = resolved_date.strftime("%Y%m%d")
