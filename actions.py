@@ -159,6 +159,11 @@ def image_to_base64(image_url):
         return base64.b64encode(response.content).decode('utf-8')
     else:
         return None
+    
+def send_text_messages(recipient_id, messages):
+    for message in messages:
+        send_text_message(recipient_id,message)
+
 
 def get_conversations(access_token):
 

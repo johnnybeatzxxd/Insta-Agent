@@ -1,3 +1,4 @@
+
 import json
 from logging import raiseExceptions
 import database
@@ -65,7 +66,8 @@ class llm:
 
     def function_call(self,response,_id):
         
-        function_call = response["candidates"][0]["content"]["parts"][0]["functionCall"]
+        print(f"this function is about to get called: {response}")
+        function_call = response["functionCall"]
         function_name = function_call["name"]
         function_args = function_call["args"]
         print(function_name)
@@ -76,7 +78,6 @@ class llm:
             
             if info:
                 returned_info = functions.get_information(info,self.owner_id)
-                print(returned_info)
                 return {"function_response":str(returned_info),"image":None}
                 
             else:
@@ -87,11 +88,6 @@ class llm:
             if date:
                 available_on = functions.availablity(date)
                 return {"function_response":f"this are the times we are available tell the user well:\n{available_on}","image":None}
-
-        if function_name == "off_topic":
-            return {"function_response":'you should only assist the user with only our property and business realted question.so dont assist! tell them to google it or somthing.',"image":None}
-        else:
-            return {"function_response":'function not found!'}
 
 
     def generate_response(self,_id,messages,owner_id):
@@ -134,8 +130,6 @@ class llm:
                 "stopSequences": [],
                 #'safety_settings': [{"category":"HARM_CATEGORY_DEROGATORY","threshold":4},{"category":"HARM_CATEGORY_TOXICITY","threshold":4},{"category":"HARM_CATEGORY_VIOLENCE","threshold":4},{"category":"HARM_CATEGORY_SEXUAL","threshold":4},{"category":"HARM_CATEGORY_MEDICAL","threshold":4},{"category":"HARM_CATEGORY_DANGEROUS","threshold":4}]
               },}
-
-
     
         retries = 0
         max_retries = 3
@@ -149,6 +143,7 @@ class llm:
                     response_data = response.json()
                     if response_data:
                         print("Valid response received:")
+                        return response_data
                         break
                     else:
                         print("Empty JSON response received, retrying...")
@@ -164,45 +159,33 @@ class llm:
         if retries >= max_retries:
             raise Exception("Failed to get response from the model")
 
-        # Process all parts of the response to handle parallel function calls and text
-        has_function_calls = False
-        text_content = ""
-        
-        # Check if we have a valid response
-        if not response_data or "candidates" not in response_data:
-            raise Exception("Sorry, I couldn't generate a response at this time.")
-            
-        parts = response_data["candidates"][0]["content"]["parts"]
-        
-        # First, collect any text content
-        for part in parts:
-            if "text" in part and part["text"]:
-                text_content += part["text"] + "\n"
-            
-            # Track if we have function calls to process
+    def process_query(self,_id,messages,owner_id):
+
+        # generate a response for the query
+        response = self.generate_response(_id,messages,owner_id)
+
+        function_calls = []
+        final_response = []
+
+        for part in response["candidates"][0]["content"]["parts"]:
             if "functionCall" in part:
-                has_function_calls = True
-        
-        # If no function calls, return the text directly
-        if not has_function_calls:
-            # Structure the response properly before returning and saving
-            response_message = {
-                "role": "model",
-                "parts": [{"text": text_content.strip()}]
-            }
-            database.add_message(_id,[response_message],owner_id,"model")
-            return text_content.strip()
-            
-        # Process parallel function calls
-        for part in parts:
-            if "functionCall" in part:
+                function_calls.append(part)
+            if "text" in part:
+                final_response.append(part["text"])
+                messages.append({
+                    "role": "model",
+                    "parts": part
+                })
+
+        while len(function_calls) > 0:
+
+            for function in function_calls:
                 # Process this function call
-                function_name = part["functionCall"]["name"]
-                function_args = part["functionCall"]["args"]
-                print(f"Parallel function call detected: {function_name}")
-                
+                function_name = function["functionCall"]["name"]
+                function_args = function["functionCall"]["args"]
+                print(f"calling function: {function_name}")
                 # Execute the function
-                function_response = self.function_call({"candidates": [{"content": {"parts": [part]}}]}, _id)
+                function_response = self.function_call(function, _id)
                 function_response_message = function_response["function_response"]
                 
                 # Add the function call and response to the conversation history
@@ -232,69 +215,17 @@ class llm:
                     "parts": functionResponse
                 })
         
-        # After processing all function calls, make a final API call to get the AI's processed response
-        retries = 0
-        max_retries = 5
-        while retries < max_retries:
-            try:
-                print("Making final request with function responses...")
-                final_response = requests.post(url, headers=headers, json=data)
-                
-                if final_response.status_code == 200:
-                    final_data = final_response.json()
-                    print(f"Final response received: {json.dumps(final_data, indent=2)}")
-                    
-                    if final_data and "candidates" in final_data:
-                        # Check the structure of the response and handle different formats
-                        try:
-                            first_part = final_data["candidates"][0]["content"]["parts"][0]
-                            if "text" in first_part:
-                                final_text = first_part["text"]
-                            elif "functionCall" in first_part:
-                                # Handle case where final response is a function call
-                                function_name = first_part["functionCall"]["name"]
-                                final_text = f"Processing request to {function_name}..."
-                                # Process this additional function call if needed
-                            else:
-                                # If no recognizable part format, check all parts for text content
-                                final_text = ""
-                                for part in final_data["candidates"][0]["content"]["parts"]:
-                                    if "text" in part:
-                                        final_text += part["text"] + "\n"
-                                
-                                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                final_text = f"{now}\n {final_text}"  
-                            # Structure the final response properly and save to database
-                            response_message = {
-                                "role": "model",
-                                "parts": [{"text": final_text}]
-                            }
-                            database.add_message(_id, [response_message], owner_id, "model")
-                            return final_text
-                        except (KeyError, IndexError) as e:
-                            print(f"Error parsing response: {e}")
-                            print(f"Response structure: {json.dumps(final_data, indent=2)}")
-                    else:
-                        print("Empty final response, retrying...")
-                else:
-                    print(f"Received non-200 status code: {final_response.status_code}")
-                    print(f"Response body: {final_response.text}")
-                
-                retries += 1
-                time.sleep(2)
-            except requests.exceptions.RequestException as e:
-                print(f'Final request failed: {e}, retrying...')
-                retries += 1
-                time.sleep(2)
-        
-        # If final request fails, return the original text response as a fallback
-        final_response = text_content.strip() if text_content else ""
-        # Structure the final response properly
-        response_message = {
-            "role": "model",
-            "parts": [{"text": final_response}]
-        }
-        database.add_message(_id, [response_message], owner_id,"model")
+            # add the function response in the contenxt and database 
+            print(messages)
+
+            # generate response using the function call returns
+            function_calls = []
+            response = self.generate_response(_id,messages,owner_id)
+            for part in response["candidates"][0]["content"]["parts"]:
+                if "functionCall" in part:
+                    function_calls.append(part)
+                if "text" in part:
+                    final_response.append(part["text"])
         return final_response
 
 # messages = [] 

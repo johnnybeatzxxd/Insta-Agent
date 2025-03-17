@@ -35,8 +35,9 @@ def process_message_batch(sender_id,owner_id):
                 
                 # Process with AI
                 llm = ai.llm(owner_id)
-                response = llm.generate_response(sender_id, latest_conversation,owner_id)
-                actions.send_text_message(sender_id, response)
+                response = llm.process_query(sender_id, latest_conversation,owner_id)
+                print(f"The final response!!,{response}")
+                actions.send_text_messages(sender_id, response)
 
 def process_messages(request):
     owner_id = request["entry"][0]["id"]
