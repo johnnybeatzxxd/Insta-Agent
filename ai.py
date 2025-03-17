@@ -261,9 +261,9 @@ class llm:
                                 for part in final_data["candidates"][0]["content"]["parts"]:
                                     if "text" in part:
                                         final_text += part["text"] + "\n"
-                                if not final_text:
-                                    final_text = "Received response in unexpected format."
-                                    
+                                
+                                now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                final_text = f"{now}\n {final_text}"  
                             # Structure the final response properly and save to database
                             response_message = {
                                 "role": "model",
@@ -288,7 +288,7 @@ class llm:
                 time.sleep(2)
         
         # If final request fails, return the original text response as a fallback
-        final_response = text_content.strip() if text_content else "Sorry, I couldn't process the response at this time."
+        final_response = text_content.strip() if text_content else ""
         # Structure the final response properly
         response_message = {
             "role": "model",

@@ -53,9 +53,10 @@ def process_messages(request):
                 "role": "model",
                 "parts": [{"text": msg}]
             }
-        database.add_message(receiver, [message], owner_id,"model")
+        if message_obj["message"]["is_echo"] != "true":
+            print("its not echo")
+            database.add_message(receiver, [message], owner_id,"model")
         return
-        
     if receiver == str(owner_id):  # The owner received a message
         print(f"Message received from {sender}")
         
