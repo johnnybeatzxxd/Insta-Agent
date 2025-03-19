@@ -54,6 +54,40 @@ function_descriptions = [
                 "required": ["date"],
             }
         },
+        {
+            "name": "confirm_payment",
+            "description": "Confirms the payment transaction after receiving the screenshot and other details.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "service": {
+                        "type": "string",
+                        "description": "The name of the service booked.",
+                    },
+                    "deposit": {
+                        "type": "number",
+                        "description": "deposit that the user made in the screenshot for lock the appointment",
+                    },
+                     "deal_price": {
+                        "type": "number",
+                        "description": "The deal price or discounted price of the service booked if any.",
+                    },
+                    "booked_datetime": {
+                        "type": "string",
+                        "description": "The date of the appointment.",
+                    },
+                    "name": {
+                        "type": "string",
+                        "description": "The customer's full name.",
+                    },
+                    "phone_number": {
+                        "type": "string",
+                        "description": "The customer's phone number.",
+                    },
+                },
+                "required": ["service", "deposit","deal_price", "booked_datetime", "name", "phone_number"],
+            }
+        },
 ]
 
 class llm:
@@ -64,7 +98,7 @@ class llm:
         self.function_descriptions = function_descriptions
         self.instruction = database.get_instruction(owner_id)
 
-    def function_call(self,response,_id):
+    def function_call(self,response,_id,owner_id):
         
         print(f"this function is about to get called: {response}")
         function_call = response["functionCall"]
@@ -89,6 +123,9 @@ class llm:
                 available_on = functions.availablity(date)
                 return {"function_response":f"this are the times we are available tell the user well:\n{available_on}","image":None}
 
+        if function_name == "confirm_payment": 
+            function_args["user_id"] = _id
+            database.set_appointment(_id,function_args,owner_id)
 
     def generate_response(self,_id,messages,owner_id):
         data = {
@@ -185,7 +222,7 @@ class llm:
                 function_args = function["functionCall"]["args"]
                 print(f"calling function: {function_name}")
                 # Execute the function
-                function_response = self.function_call(function, _id)
+                function_response = self.function_call(function, _id,owner_id)
                 function_response_message = function_response["function_response"]
                 
                 # Add the function call and response to the conversation history

@@ -14,6 +14,7 @@ db = client['BeautySalonChats']
 Users = db['users']
 Data = db['data']
 creds = db['creds']
+appointments = db['appointments']
 
 
 def reset_conversation(_id,owner_id):
@@ -65,6 +66,13 @@ def set_instruction(_id,instruction):
         {"$set": {"instruction": instruction}},
         upsert=True
     )
+
+def set_appointment(_id,appointment,owner_id):
+    appointments.update_one(
+            {"_id":owner_id},
+            {"$set":{"appointments":appointment}},
+            upsert=True
+            )
 
 def get_dataset(owner_id):
     dataset_entry = Data.find_one({"_id":int(owner_id)})
