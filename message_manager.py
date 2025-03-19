@@ -49,7 +49,7 @@ def process_messages(request):
         print(f"Message sent to {receiver}")
         msg = message_obj["message"]["text"]
         today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        msg = f"{today}\n{msg}"
+        # msg = f"{today}\n{msg}"
         message = {
                 "role": "model",
                 "parts": [{"text": msg}]
@@ -68,11 +68,11 @@ def process_messages(request):
             # Immediately save the message to database
             message = message_obj["message"]
             parts = []
-            msg = message["text"]
-            today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            msg = f"{today}\n{msg}"
             # Handle text content
             if "text" in message:
+                msg = message["text"]
+                today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                msg = f"{today}\n{msg}"
                 parts.append({"text": msg})
             
             # Handle image attachments
