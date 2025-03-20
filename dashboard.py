@@ -23,6 +23,52 @@ def is_cache_valid(cache_file):
     except (json.JSONDecodeError, KeyError, ValueError):
         return False
 
+def transform_conversations(filtered_conversations, owner_id):
+    conversations = []
+    
+    for i, conversation in enumerate(filtered_conversations):
+        if "messages" not in conversation or "data" not in conversation["messages"]:
+            continue
+            
+        # Find the other participant (not the owner)
+        other_participant = None
+        for participant in conversation["participants"]["data"]:
+            if str(participant["id"]) != str(owner_id):
+                other_participant = participant
+                break
+                
+        if not other_participant:
+            continue
+            
+        # Get all messages
+        messages = []
+        for msg in conversation["messages"]["data"]:
+            message_time = datetime.strptime(msg["created_time"], "%Y-%m-%dT%H:%M:%S%z")
+            formatted_time = message_time.strftime("%I:%M %p")
+            
+            messages.append({
+                "id": len(messages) + 1,
+                "content": msg.get("message", ""),
+                "isUser": str(msg["from"]["id"]) == str(owner_id),
+                "time": formatted_time
+            })
+        
+        # Get last message info
+        last_message = messages[-1]["content"] if messages else ""
+        last_message_time = messages[-1]["time"] if messages else ""
+        
+        conversations.append({
+            "id": i + 1,
+            "user": other_participant["username"].title().replace(".", " "),
+            "avatar": "".join([name[0] for name in other_participant["username"].split()[:2]]).upper(),
+            "lastMessage": last_message,
+            "time": last_message_time,
+            "unread": False,  # You can modify this based on your read/unread logic
+            "messages": messages
+        })
+    
+    return conversations
+
 def dashboard_stats(owner_id,access_token):
     # Create ID-specific cache filenames
     users_cache_file = f"users_cache_{owner_id}.json"
@@ -124,14 +170,17 @@ def dashboard_stats(owner_id,access_token):
             "userId": other_participant["id"],
             "name": username.title().replace(".", " "),
             "avatar": "".join([name[0] for name in username.split()[:2]]).upper(),
-            "email": f"{username}@example.com",
-            "phone": "+1 (555) 123-4567",  
+            "username": f"{username}",
+            "phone": "-",
             "conversations": conv_count,
             "lastActive": last_active,
             "botEnabled": bot_enabled,  
             "status": "active"  
         })
 
+    # Transform conversations to the new format
+    transformed_conversations = transform_conversations(filtered_conversations, owner_id)
+    
     response = {
         "stats":[
         {
@@ -161,7 +210,7 @@ def dashboard_stats(owner_id,access_token):
     ],
     "recent_chats": recent_chats,
     "customers": customers,
-
+    "conversations": transformed_conversations
 }
     return response 
 
