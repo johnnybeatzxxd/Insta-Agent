@@ -77,8 +77,61 @@ def dashboard_stats(owner_id,access_token):
 
     # Parse recent chats from filtered conversations
     recent_chats = parse_recent_chats(filtered_conversations, owner_id)
+    print(filtered_conversations)
+    customers = []
+    active_users = database.get_active_users(owner_id)
+    for i, conversation in enumerate(filtered_conversations):
+        # Find the other participant (not the owner)
+        other_participant = None
+        for participant in conversation["participants"]["data"]:
+            if str(participant["id"]) != str(owner_id):
+                other_participant = participant
+                break
+                
+        if not other_participant:
+            continue
+            
+        # Get the most recent message time
+        if "messages" in conversation and "data" in conversation["messages"] and conversation["messages"]["data"]:
+            recent_message = conversation["messages"]["data"][0]
+            message_time = datetime.strptime(recent_message["created_time"], "%Y-%m-%dT%H:%M:%S%z")
+            current_time = datetime.now(message_time.tzinfo)
+            time_diff = current_time - message_time
+            
+            # Format last active time
+            if time_diff.days > 0:
+                last_active = message_time.strftime("Yesterday, %I:%M %p")
+            else:
+                last_active = message_time.strftime("Today, %I:%M %p")
+        else:
+            last_active = "N/A"
+            
+        # Get conversation count for this user
+        conv_count = 0
+        for user in users:
+            if str(user['_id']) == str(other_participant['id']):
+                conv_count = len(user.get('conversation', []))
+                break
+        bot_enabled = False
+        for active_user in active_users:
+            if active_user["active"] == True:
+                bot_enabled = True
+                        
+        # Create customer data
+        username = other_participant["username"]
+        customers.append({
+            "id": i + 1,
+            "userId": other_participant["id"],
+            "name": username.title().replace(".", " "),
+            "avatar": "".join([name[0] for name in username.split()[:2]]).upper(),
+            "email": f"{username}@example.com",
+            "phone": "+1 (555) 123-4567",  
+            "conversations": conv_count,
+            "lastActive": last_active,
+            "botEnabled": bot_enabled,  
+            "status": "active"  
+        })
 
-    print(recent_chats)
     response = {
         "stats":[
         {
@@ -106,7 +159,9 @@ def dashboard_stats(owner_id,access_token):
            "color": "bg-amber-100 text-amber-700",
         }
     ],
-    "recent_chats": recent_chats
+    "recent_chats": recent_chats,
+    "customers": customers,
+
 }
     return response 
 

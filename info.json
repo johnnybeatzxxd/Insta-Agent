@@ -90,33 +90,28 @@
     },
     {
       "name": "Eyelash Extensions - Classic Set",
-      "price": 130,
-       "original_price": 150,
-      "deposit": 50
+      "price": 90,
+      "deposit": 20
     },
     {
       "name": "Eyelash Extensions - Hybrid",
-      "price": 140,
-      "original_price": 160,
-      "deposit": 50
+      "price": 90,
+      "deposit": 20
     },
     {
       "name": "Eyelash Extensions - 2-3D",
-      "price": 150,
-       "original_price": 170,
-      "deposit": 50
+      "price": 90,
+      "deposit": 20
     },
     {
       "name": "Eyelash Extensions - 4-6D",
-      "price": 170,
-      "original_price": 190,
-      "deposit": 50
+      "price": 90,
+      "deposit": 20
     },
     {
       "name": "Eyelash Extensions - Mega Volume",
       "price": 190,
-       "original_price": 210,
-      "deposit": 50
+      "deposit": 20
     },
       {
       "name": "EMSculpt - 1 Session",

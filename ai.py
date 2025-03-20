@@ -126,6 +126,7 @@ class llm:
         if function_name == "confirm_payment": 
             function_args["user_id"] = _id
             database.set_appointment(_id,function_args,owner_id)
+            return {"function_response":"The transaction is being confirmed! tell the user 'I am checking the transaction give me a moment'"}
 
     def generate_response(self,_id,messages,owner_id):
         data = {

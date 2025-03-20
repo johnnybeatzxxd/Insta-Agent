@@ -82,6 +82,9 @@ def get_instruction(owner_id):
     instruction_entry = Data.find_one({"_id":int(owner_id)}, {"instruction": 1, "_id": 0})
     return instruction_entry.get("instruction") if instruction_entry else None
 
+def get_active_users(owner_id):
+    active_users = Users.find({"active":True,"owner_id":owner_id})
+    return active_users
 def get_users(owner_id):
     users = Users.find({"owner_id":owner_id})
     if users is None:
