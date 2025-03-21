@@ -54,6 +54,7 @@ def transform_conversations(filtered_conversations, owner_id):
             })
         
         # Get last message info
+        messages.reverse()
         last_message = messages[-1]["content"] if messages else ""
         last_message_time = messages[-1]["time"] if messages else ""
         
@@ -123,11 +124,9 @@ def dashboard_stats(owner_id,access_token):
 
     # Parse recent chats from filtered conversations
     recent_chats = parse_recent_chats(filtered_conversations, owner_id)
-    print(filtered_conversations)
     customers = []
-    active_users = database.get_active_users(owner_id)
+    active_users = list(database.get_active_users(owner_id))  # Convert cursor to list
     for i, conversation in enumerate(filtered_conversations):
-        # Find the other participant (not the owner)
         other_participant = None
         for participant in conversation["participants"]["data"]:
             if str(participant["id"]) != str(owner_id):
@@ -136,8 +135,7 @@ def dashboard_stats(owner_id,access_token):
                 
         if not other_participant:
             continue
-            
-        # Get the most recent message time
+        
         if "messages" in conversation and "data" in conversation["messages"] and conversation["messages"]["data"]:
             recent_message = conversation["messages"]["data"][0]
             message_time = datetime.strptime(recent_message["created_time"], "%Y-%m-%dT%H:%M:%S%z")
@@ -158,13 +156,20 @@ def dashboard_stats(owner_id,access_token):
             if str(user['_id']) == str(other_participant['id']):
                 conv_count = len(user.get('conversation', []))
                 break
+
         bot_enabled = False
         for active_user in active_users:
-            if active_user["active"] == True:
-                bot_enabled = True
-                        
+            print(f"Comparing {active_user['_id']} with {other_participant['id']}")  # Debug print
+            if str(active_user["_id"]) == str(other_participant["id"]):
+                print(f"Match found: {active_user['_id']} - Active: {active_user.get('active', False)}")  # Debug print
+                if active_user.get("active", False):
+                    bot_enabled = True
+                    break  
+
         # Create customer data
         username = other_participant["username"]
+        print(username)
+        print(bot_enabled)
         customers.append({
             "id": i + 1,
             "userId": other_participant["id"],
@@ -181,7 +186,27 @@ def dashboard_stats(owner_id,access_token):
     # Transform conversations to the new format
     transformed_conversations = transform_conversations(filtered_conversations, owner_id)
     
+    # Find owner information from participants
+    owner_info = None
+    for conversation in filtered_conversations:
+        for participant in conversation["participants"]["data"]:
+            if str(participant["id"]) == str(owner_id):
+                owner_info = participant
+                break
+        if owner_info:
+            break
+
+    print(owner_info)
+    # Create owner object
+    owner_object = {
+        "id": owner_id,
+        "username": owner_info.get("username", "Unknown") if owner_info else "Unknown",
+        "avatar": "".join([name[0] for name in owner_info.get("username", "Owner").split()[:2]]).upper() if owner_info else "O"
+    }
+
+    # Add owner to response
     response = {
+        "owner": owner_object,
         "stats":[
         {
             "title": "Total Users",

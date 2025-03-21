@@ -96,13 +96,13 @@ def signup():
 def login():
     if request.method == "POST":
         creds = request.get_json()
-        email = creds.get("email")
+        username = creds.get("username")
         password = creds.get("password")
         authenticate = database.auth()
-        user = authenticate.login(email=email,password=password)
+        user = authenticate.login(username=username,password=password)
         
         if user:
-            response = {"_id":user["_id"],"email":user["email"],"cookie":user["cookie"]}
+            response = {"_id":user["_id"],"username":user["username"],"cookie":user["cookie"]}
             return jsonify({'stats':'logged in','user':response}), 200
         return jsonify({"message":'Invalid credentials!'}), 400
 
@@ -126,10 +126,32 @@ def dash():
         
         if user:
             response = dashboard.dashboard_stats(user_id,access_token)
-            print('this is the response:',response)
+            # print('this is the response:',response)
             return jsonify({'data': response}), 200
 
         return jsonify({'message': "Access Token Expired!"}), 400
+
+@app.route('/switch', methods=['POST'])
+def switch():
+    
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'message': "Missing or invalid Authorization header"}), 400
+        
+    cookie = auth_header.split(' ')[1] 
+    
+    authentication = database.auth()
+    user = authentication.login(cookie=cookie)
+    if user is None:
+        return jsonify({'message': "wrong credentials"}), 400
+    owner_id = user["_id"]
+    body = request.get_json()
+    customer_id = body["userId"]
+    is_enabled = body["is_enabled"]
+    database.set_user_active(customer_id,is_enabled,owner_id)
+    
+    return jsonify({'message': "updated"}), 200
+
 
 @app.route('/customers',methods=['GET'])
 def cust():

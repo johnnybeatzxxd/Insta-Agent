@@ -24,6 +24,9 @@ def check_user_active(_id,owner_id):
     user = Users.find_one({"_id":_id,"owner_id":owner_id})
     return user.get("active", True)
 
+def set_user_active(_id,enabled,owner_id):
+    Users.update_one({"_id":_id},{"$set":{"active":enabled}})
+
 def add_message(_id, messages,owner_id, role=None):
     """Adds messages to conversation, handling both single and bulk operations."""
     try:
@@ -93,30 +96,30 @@ def get_users(owner_id):
 
 class auth:
 
-    def login(self,cookie=None,email=None,password=None):
-        if email is None and cookie is not None:
+    def login(self,cookie=None,username=None,password=None):
+        if username is None and cookie is not None:
             user = creds.find_one({"cookie":cookie})
         else:
-            user = creds.find_one({"email":email,"password":password})
+            user = creds.find_one({"username":username,"password":password})
             
         if user is None:
             return None
 
         return user
 
-    def signup(self,_id,email,password,access_token):
+    def signup(self,_id,username,password,access_token):
         import secrets
         import string
         alphabet = string.ascii_letters + string.digits
         cookie = ''.join(secrets.choice(alphabet) for i in range(64))
         creds.insert_one(
-                {
-                    "_id":_id,
-                    "email":email,
-                    "password":password,
-                    "access_token":access_token,
-                    "cookie":cookie
-                 }) 
+            {
+                "_id":_id,
+                "username":username,
+                "password":password,
+                "access_token":access_token,
+                "cookie":cookie
+             }) 
 
 if __name__ == "__main__":
     pass
