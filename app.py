@@ -215,9 +215,10 @@ def data():
         if user is None:
             return jsonify({'message': "wrong credentials"}), 400
 
+        owner_id = user["_id"]
         body = request.get_json()
         business_data = body.get("business_data")
-        database.set_dataset(_id,business_data)
+        database.set_dataset(owner_id,business_data)
         return jsonify({'message': "Business data saved!"}), 200
     
 if __name__ == '__main__':
