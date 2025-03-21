@@ -93,6 +93,8 @@ def get_users(owner_id):
     if users is None:
         users = []
     return users 
+def delete_customer(_id,owner_id):
+    Users.remove({"_id":_id,"owner_id":owner_id})
 
 class auth:
 

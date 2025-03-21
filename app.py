@@ -153,9 +153,9 @@ def switch():
     return jsonify({'message': "updated"}), 200
 
 
-@app.route('/customers',methods=['GET'])
+@app.route('/delete_customer',methods=['POST'])
 def cust():
-    if request.method == "GET":
+    if request.method == "POST":
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return jsonify({'message': "Missing or invalid Authorization header"}), 400
@@ -170,9 +170,15 @@ def cust():
         user_id = user["_id"]
         access_token = user["access_token"]
         
+        body = request.get_json()
+        _id = boday.get("_id")
+        owner_id = body.get("owner_id") 
         if user:
-            
+            database.delete_customer(_id,owner_id) 
             pass
+            return jsonify({'message': f"{_id} deleted!"}), 200
+        
+        return jsonify({'message': "couldnt delete the user"}), 400
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('DEBUG', 'True').lower() == 'true'
