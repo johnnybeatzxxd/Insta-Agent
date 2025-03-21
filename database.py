@@ -94,8 +94,13 @@ def get_users(owner_id):
         users = []
     return users 
 def delete_customer(_id,owner_id):
-    Users.remove({"_id":_id,"owner_id":owner_id})
+    Users.delete_one({"_id":_id,"owner_id":owner_id})
 
+def get_business_data(_id):
+    data = Data.find_one({"_id":int(_id)})
+    dataset = data["dataset"]
+    return dataset
+    
 class auth:
 
     def login(self,cookie=None,username=None,password=None):

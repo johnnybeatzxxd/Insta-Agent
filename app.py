@@ -179,6 +179,28 @@ def cust():
             return jsonify({'message': f"{_id} deleted!"}), 200
         
         return jsonify({'message': "couldnt delete the user"}), 400
+
+@app.route('/business_data',methods=['GET'])
+def deta():
+    if request.method == "GET":
+        # Get Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': "Missing or invalid Authorization header"}), 400
+            
+        cookie = auth_header.split(' ')[1]  # Extract token after 'Bearer '
+        
+        authentication = database.auth()
+        user = authentication.login(cookie=cookie)
+        if user is None:
+            return jsonify({'message': "wrong credentials"}), 400
+
+        owner_id = user["_id"]
+        
+        business_data = database.get_business_data(owner_id)
+
+        return jsonify({'data': business_data}), 200
+
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('DEBUG', 'True').lower() == 'true'
