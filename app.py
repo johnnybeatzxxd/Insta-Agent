@@ -201,6 +201,25 @@ def deta():
 
         return jsonify({'data': business_data}), 200
 
+@app.route('/save_business_data',methods=['POST'])
+def data():
+    if request.method == "POST":
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': "Missing or invalid Authorization header"}), 400
+            
+        cookie = auth_header.split(' ')[1]  # Extract token after 'Bearer '
+        
+        authentication = database.auth()
+        user = authentication.login(cookie=cookie)
+        if user is None:
+            return jsonify({'message': "wrong credentials"}), 400
+
+        body = request.get_json()
+        business_data = body.get("business_data")
+        database.set_dataset(_id,business_data)
+        return jsonify({'message': "Business data saved!"}), 200
+    
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
     debug = os.getenv('DEBUG', 'True').lower() == 'true'
