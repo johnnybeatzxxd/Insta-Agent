@@ -171,7 +171,7 @@ def cust():
         access_token = user["access_token"]
         
         body = request.get_json()
-        _id = boday.get("_id")
+        _id = body.get("_id")
         owner_id = body.get("owner_id") 
         if user:
             database.delete_customer(_id,owner_id) 
