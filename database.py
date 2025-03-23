@@ -58,7 +58,7 @@ def get_conversation(_id,owner_id):
 
 def set_dataset(_id,dataset):
     Data.update_one(
-        {"_id":_id}, 
+        {"_id":int(_id)}, 
         {"$set": {"dataset": dataset}},
         upsert=True
     )

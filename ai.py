@@ -100,7 +100,6 @@ class llm:
 
     def function_call(self,response,_id,owner_id):
         
-        print(f"this function is about to get called: {response}")
         function_call = response["functionCall"]
         function_name = function_call["name"]
         function_args = function_call["args"]
