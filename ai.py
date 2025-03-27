@@ -32,7 +32,7 @@ function_descriptions = [
                 "properties": {
                     "info": {
                         "type": "string",
-                        "enum": ["businessDescription", "booking","services","training","policy","payment_plans","contact"],
+                        "enum": ["businessDescription", "payment_informations","services","training","policy","contact"],
                         "description": 'you specify what information you want to get. you must choose one of this ["businessDescription", "booking","services","training","policy","payment_plans","contact"] use businessDescription for general info.'
                     },
                 },
