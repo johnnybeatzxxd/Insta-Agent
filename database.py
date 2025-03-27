@@ -130,6 +130,8 @@ class auth:
              }) 
 
 if __name__ == "__main__":
-    pass
-    info = get_dataset(17841433182941465)
-    print(info)
+    with open("info.json","r") as info:
+        info = json.load(info)
+    print("saving!")
+    set_dataset(17841433182941465,info)
+    print("saved!")
