@@ -32,8 +32,8 @@ function_descriptions = [
                 "properties": {
                     "info": {
                         "type": "string",
-                        "enum": ["businessDescription", "payment_informations","services","training","policy","contact"],
-                        "description": 'you specify what information you want to get. you must choose one of this ["businessDescription", "booking","services","training","policy","payment_plans","contact"] use businessDescription for general info.'
+                        "enum": ["businessDescription", "booking","services","training","policy","payment_informations","contact"] ,
+                        "description": 'you specify what information you want to get. you must choose one of this ["businessDescription", "booking","services","training","policy","payment_informations","contact"] use businessDescription for general info.'
                     },
                 },
                 "required": ["info"],
@@ -160,7 +160,7 @@ class llm:
             },
         ],
                 "generationConfig": {
-                "temperature": 0.1,
+                "temperature": 0,
                 "topK": 1,
                 "topP": 1,
                 "maxOutputTokens": 2048,
@@ -243,17 +243,25 @@ class llm:
                 }]
                 
                 # Update messages for next API call (but don't save to database yet)
-                messages.append({
+
+                func_call = {
                     "role": "model",
                     "parts": function
-                })
-                messages.append({
+                }
+
+                func_response = {
                     "role": "function",
                     "parts": functionResponse
-                })
-        
+                }
+
+                messages.append(func_call)
+                messages.append(func_response)
+
+                database.add_message(_id, [func_call], owner_id,"model")
+                database.add_message(_id, [func_response], owner_id,"function")
             # add the function response in the contenxt and database 
             print(messages)
+            
 
             # generate response using the function call returns
             function_calls = []

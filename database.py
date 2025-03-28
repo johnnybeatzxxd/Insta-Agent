@@ -2,7 +2,6 @@ from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 import json
-
 from pymongo.synchronous import database
 import actions
 
@@ -58,7 +57,7 @@ def get_conversation(_id,owner_id):
 
 def set_dataset(_id,dataset):
     Data.update_one(
-        {"_id":int(_id)}, 
+        {"_id":_id}, 
         {"$set": {"dataset": dataset}},
         upsert=True
     )
@@ -94,14 +93,8 @@ def get_users(owner_id):
         users = []
     return users 
 def delete_customer(_id,owner_id):
-    Users.delete_one({"_id":_id,"owner_id":owner_id})
+    Users.remove({"_id":_id,"owner_id":owner_id})
 
-def get_business_data(_id):
-    data = Data.find_one({"_id":int(_id)})
-    dataset = data["dataset"]
-    return dataset
-
-    
 class auth:
 
     def login(self,cookie=None,username=None,password=None):
@@ -130,8 +123,6 @@ class auth:
              }) 
 
 if __name__ == "__main__":
-    with open("info.json","r") as info:
-        info = json.load(info)
-    print("saving!")
-    set_dataset(17841433182941465,info)
-    print("saved!")
+    pass
+    info = get_dataset(17841433182941465)
+    print(info)
