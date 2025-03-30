@@ -137,7 +137,11 @@ def is_time_available(appointment_time, schedule):
 
         # Convert both times to a common format
         formatted_slot_time = datetime.strptime(slot_time, "%Y-%m-%dT%H:%M:%S")
-        formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%d %H:%M:%S")
+
+        try:
+            formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%d %H:%M")  # Handle missing seconds
 
         if formatted_slot_time == formatted_appointment_time:
             return True
@@ -145,4 +149,8 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
+    sche = {'today': {'date': '2025-03-30', 'day': 'Sunday'}, 'available_times': [{'start_time': '2025-03-31T09:00:00-0400', 'provider_id'
+: 1074001982}, {'start_time': '2025-03-31T12:30:00-0400', 'provider_id': 1074001982}, {'start_time': '2025-03-31T13:00:00-0400'
+, 'provider_id': 1074001982}, {'start_time': '2025-03-31T15:00:00-0400', 'provider_id': 1074001982}]}
+    print(is_time_available("2025-03-31 12:40",sche))
     pass
