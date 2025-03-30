@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import json
 from pymongo.synchronous import database
 import actions
+from bson import ObjectId
 
 load_dotenv(override=True)
 
@@ -69,12 +70,52 @@ def set_instruction(_id,instruction):
         upsert=True
     )
 
-def set_appointment(_id,appointment,owner_id):
+def reschedule_appointment(appointment_id,date):
+
+    # Validate before converting
+    if ObjectId.is_valid(appointment_id):
+        object_id = ObjectId(appointment_id)
+    else:
+        raise ValueError("Invalid ObjectId format")
+    object_id = ObjectId(appointment_id)
     appointments.update_one(
-            {"_id":owner_id},
-            {"$set":{"appointments":appointment}},
-            upsert=True
+            {"_id":object_id},
+            {"$set":{"booked_datetime":date}}
             )
+
+def cancel_appointment(appointment_id):
+    if ObjectId.is_valid(appointment_id):
+        object_id = ObjectId(appointment_id)
+    else:
+        raise ValueError("Invalid ObjectId format")
+    object_id = ObjectId(appointment_id)
+    appointments.update_one(
+            {"_id":object_id},
+            {"$set":{"cancelled":True}}
+            )
+
+def set_appointment(_id,appointment,owner_id):
+    temp = appointment.copy()
+    temp["user_id"] = _id
+    temp["owner_id"] = owner_id
+    temp["cancelled"] = False
+
+    temp = appointments.insert_one(temp)
+    return temp.inserted_id
+
+def get_user_appointments(_id,owner_id,phone_number=None):
+    query = {}
+    if phone_number is None:
+        query = {"user_id":_id,"owner_id":owner_id}
+    else:
+        query = {"phone_number":phone_number}
+    user_appointments = appointments.find(query)
+    appointment_list = []
+    for user_appointment in list(user_appointments):
+        if not user_appointment.get("cancelled"):
+            user_appointment["_id"] = str(user_appointment["_id"])
+            appointment_list.append(user_appointment)
+    return list(appointment_list)
 
 def get_dataset(owner_id):
     dataset_entry = Data.find_one({"_id":int(owner_id)})

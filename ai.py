@@ -1,4 +1,3 @@
-
 import json
 from logging import raiseExceptions
 import database
@@ -88,6 +87,53 @@ function_descriptions = [
                 "required": ["service", "deposit","deal_price", "booked_datetime", "name", "phone_number"],
             }
         },
+        {
+            "name": "get_user_appointments",
+            "description": "This function returns list of user appointments. phone_number is not required the system knows the user",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "phone_number": {
+                        "type": "string",
+                        "description": "phone_number is not required to call this function"
+                    },
+                
+                },
+            }
+        },
+        {
+            "name": "reschedule_appointment",
+            "description": "This function lets you reschedule appointment. it takes _id of the appointment and date time. dont not ask the user for an id you should call get_user_appointments function first. availablity must be checked before calling this function",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "_id": {
+                        "type": "string",
+                        "description": "the _id of the appointment fetched from get_user_appointments function"
+                    },
+                    "date_time": {
+                        "type": "string",
+                        "description": "date time of the new rescheduled appointment"
+                    },
+                },
+                "required": ["_id","date_time"],
+            }
+        },
+        {
+            "name": "cancel_appointment",
+            "description": "This function lets you cancel an appointment",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "_id": {
+                        "type": "string",
+                        "description": "the _id of the appointment fetched from get_user_appointments function"
+                    },
+                },
+                "required": ["_id"],
+            },
+        },
+
 ]
 
 class llm:
@@ -123,9 +169,35 @@ class llm:
                 return {"function_response":f"this are the times we are available tell the user well:\n{available_on}","image":None}
 
         if function_name == "confirm_payment": 
-            function_args["user_id"] = _id
-            database.set_appointment(_id,function_args,owner_id)
-            return {"function_response":"The transaction is being confirmed! tell the user 'I am checking the transaction give me a moment'"}
+            ap = function_args 
+            ap["payment_confirmed"] = False
+            appointment_id = database.set_appointment(_id,ap,owner_id)
+            return {"function_response":f"The transaction is being confirmed! Appointment ID: {appointment_id}. Tell the user 'I am checking the transaction give me a moment'","image":None}
+
+        if function_name == "get_user_appointments":
+            phone_number = function_args.get("phone_number",None)
+            user_appointments = database.get_user_appointments(_id,owner_id,phone_number=phone_number)
+            return {"function_response":user_appointments,"image":None}
+
+        if function_name == "reschedule_appointment":
+            date_time = function_args.get("date_time")
+            appointment_id = function_args.get("_id")
+            date = date_time.split(" ")[0]
+            time = date_time.split(" ")[1]
+
+            available_on = json.loads(functions.availablity(date))
+
+            print(available_on)
+            if functions.is_time_available(date_time, available_on):
+                user_appointments = database.reschedule_appointment(appointment_id,date_time)
+                return {"function_response":"appointment rescheduled!","image":None}
+            return {"function_response":"error: specified date is not available","image":None}
+
+        if function_name == "cancel_appointment":
+            _id = function_args.get("_id")
+            user_appointments = database.cancel_appointment(_id)
+            return {"function_response":"the appointment has been cancelled!","image":None}
+
 
     def generate_response(self,_id,messages,owner_id):
         data = {

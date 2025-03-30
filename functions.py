@@ -1,10 +1,10 @@
 import requests
 import json
-import datetime
+from datetime import datetime, date, timedelta  
 import calendar
 import database
 
-def get_information(key,owner_id):
+def get_information(key, owner_id):
     info = database.get_dataset(owner_id)
     if info is None:
         return "data not found:"
@@ -12,7 +12,7 @@ def get_information(key,owner_id):
 
 def get_next_weekday_date(weekday_name, reference_date=None):
     if reference_date is None:
-        reference_date = datetime.date.today()
+        reference_date = date.today()  
 
     weekday_name = weekday_name.lower()
     if len(weekday_name) == 3:
@@ -31,7 +31,7 @@ def get_next_weekday_date(weekday_name, reference_date=None):
         if days_ahead == 0:
             days_ahead = 7
 
-        next_date = reference_date + datetime.timedelta(days=days_ahead)
+        next_date = reference_date + timedelta(days=days_ahead)  
         return next_date
 
     except ValueError:
@@ -39,7 +39,7 @@ def get_next_weekday_date(weekday_name, reference_date=None):
 
 def availablity(date_input):
     """
-    Checks availability for a given date or weekday.  Supports "today", weekday names,
+    Checks availability for a given date or weekday. Supports "today", weekday names,
     "next [weekday]", and YYYY-MM-DD date formats.
 
     Args:
@@ -52,12 +52,12 @@ def availablity(date_input):
     general = False
     if date_input.lower() == "general":
         general = True
-        resolved_date = datetime.date.today()
+        resolved_date = date.today()  
         date_input = "today"
     if date_input.lower() == "today":
-        resolved_date = datetime.date.today()
+        resolved_date = date.today()
     elif date_input.lower() == "tomorrow":
-        resolved_date = datetime.date.today() + datetime.timedelta(days=1)
+        resolved_date = date.today() + timedelta(days=1)
     elif date_input.lower() in [day.lower() for day in calendar.day_name] + [day.lower() for day in calendar.day_abbr]:
         resolved_date = get_next_weekday_date(date_input)
     elif date_input.lower().startswith("next "):
@@ -68,13 +68,13 @@ def availablity(date_input):
             return "Please provide a day after 'next' keyword"
     else:
         try:
-            resolved_date = datetime.datetime.strptime(date_input, "%Y-%m-%d").date()
+            resolved_date = datetime.strptime(date_input, "%Y-%m-%d").date()
         except ValueError:
             return "Invalid date format. Please use YYYY-MM-DD or a weekday name."
 
     if not resolved_date:
         general = True
-        resolved_date = datetime.date.today()
+        resolved_date = date.today()
         date_input = "today"
 
     # Convert date to required format (YYYYMMDD)
@@ -96,8 +96,8 @@ def availablity(date_input):
         # Process dates into human-readable format
         processed = {
             "today": {
-                "date": datetime.date.today().strftime("%Y-%m-%d"),
-                "day": datetime.date.today().strftime("%A")
+                "date": date.today().strftime("%Y-%m-%d"),
+                "day": date.today().strftime("%A")
             }
         }
         
@@ -106,19 +106,15 @@ def availablity(date_input):
             # For "general" query - has available_days dictionary
             processed["available_days"] = [
                 {
-                    "date": datetime.datetime.strptime(d, "%Y%m%d").strftime("%Y-%m-%d"),
-                    "day": datetime.datetime.strptime(d, "%Y%m%d").strftime("%A")
+                    "date": datetime.strptime(d, "%Y%m%d").strftime("%Y-%m-%d"),
+                    "day": datetime.strptime(d, "%Y%m%d").strftime("%A")
                 } for d in parsed_data.get("available_days", {}).keys()
             ]
             
             if parsed_data.get("first_available_day"):
                 processed["first_available_day"] = {
-                    "date": datetime.datetime.strptime(
-                        parsed_data["first_available_day"], "%Y%m%d"
-                    ).strftime("%Y-%m-%d"),
-                    "day": datetime.datetime.strptime(
-                        parsed_data["first_available_day"], "%Y%m%d"
-                    ).strftime("%A")
+                    "date": datetime.strptime(parsed_data["first_available_day"], "%Y%m%d").strftime("%Y-%m-%d"),
+                    "day": datetime.strptime(parsed_data["first_available_day"], "%Y%m%d").strftime("%A")
                 }
             else:
                 processed["first_available_day"] = None
@@ -135,5 +131,18 @@ def availablity(date_input):
     except requests.exceptions.RequestException as e:
         return f"Error fetching availability: {e}"
 
+def is_time_available(appointment_time, schedule):
+    for slot in schedule.get("available_times"):
+        slot_time = slot["start_time"][:19]  # Extract only the YYYY-MM-DDTHH:MM:SS part
+
+        # Convert both times to a common format
+        formatted_slot_time = datetime.strptime(slot_time, "%Y-%m-%dT%H:%M:%S")
+        formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%d %H:%M:%S")
+
+        if formatted_slot_time == formatted_appointment_time:
+            return True
+
+    return False
+
 if __name__ == "__main__":
-    print(availablity('next monday'))
+    pass

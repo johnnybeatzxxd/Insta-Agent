@@ -161,8 +161,8 @@ def image_to_base64(image_url):
         return None
     
 def send_text_messages(recipient_id, messages):
-    for message in messages:
-        send_text_message(recipient_id,message)
+    # for message in messages:
+    send_text_message(recipient_id,messages[-1])
 
 
 def get_conversations(access_token):
@@ -184,4 +184,5 @@ def get_conversations(access_token):
 if __name__ == "__main__":
     print("database gone!")
     # get_conversations()
+    send_text_message(1660159627957434,"hi")
 
