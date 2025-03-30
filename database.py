@@ -121,6 +121,11 @@ def get_dataset(owner_id):
     dataset_entry = Data.find_one({"_id":int(owner_id)})
     return dataset_entry.get("dataset") if dataset_entry else None
 
+def get_business_data(_id):
+     data = Data.find_one({"_id":int(_id)})
+     dataset = data["dataset"]
+     return dataset
+
 def get_instruction(owner_id):
     instruction_entry = Data.find_one({"_id":int(owner_id)}, {"instruction": 1, "_id": 0})
     return instruction_entry.get("instruction") if instruction_entry else None
