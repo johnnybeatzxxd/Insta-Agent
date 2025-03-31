@@ -13,13 +13,14 @@ def book_appointment(_id,args,owner_id):
     service = args.get("service")
     deposit_amount = args.get("deposit_amount")
     deal_price = args.get("deal_price")
-    booked_datetime = args.get("booked_datetime")
+    start_time = args.get("booked_datetime")
     note = args.get("note")
     duration = args.get("duration","60")
     
     client = schedulista_api.get_clients(phone_number)
     if client:
         client = client[0][0]
+        print(client)
         client_id = client.get("id")
     else:
         try:
@@ -35,11 +36,18 @@ def book_appointment(_id,args,owner_id):
     # save into the database 
     database.set_appointment(_id,args,owner_id)
     # create an appointment
+    dt = datetime.fromisoformat(start_time)
+    end_time = dt + timedelta(minutes=int(duration))
+    end_time = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+    print(end_time)
+    
     appointment = schedulista_api.create_appointment(
             client_id=client_id,
             name=name,
             phone_number=phone_number,
-            start_time=booked_datetime,
+            start_time=start_time,
+            end_time=str(end_time),
+            duration=duration,
             note=note
             )
     appointment_id = appointment["created_appointment"]["id"]
@@ -190,5 +198,5 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    payload = {'deal_price': 90, 'phone_number': '+251977276556', 'name': 'Ashley Rosa', 'service': 'Eyelash Extensions - Classic Set', 'deposit_amount': 20, 'booked_datetime': '2025-04-04T09:00:00', 'note': 'Classic Eyelash Extensions for Ashley Rosa, deposit $20, deal price $90'}
+    payload = {'booked_datetime': '2025-04-03T09:00:00', 'deposit_amount': 20, 'phone_number': '+14155557890', 'note': 'Classic Lash Extension, Ashley Benson, $20 deposit, $90 price', 'deal_price': 90, 'name': 'Ashley Benson', 'service': 'Classic Lash Extension'}
     print(book_appointment(123,payload,456))
