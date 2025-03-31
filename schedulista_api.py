@@ -1,0 +1,201 @@
+import requests
+import os
+from dotenv import load_dotenv
+
+
+load_dotenv(override=True)
+cookie = os.environ.get('schedulista_cookie')
+
+
+headers = {
+    "authority": "www.schedulista.com",
+    "method": "POST",
+    "path": "/calendar/create_appointment_v2",
+    "scheme": "https",
+    "accept": "application/json, text/javascript, */*; q=0.01",
+    "accept-encoding": "gzip, deflate, br, zstd",
+    "accept-language": "en-US,en;q=0.9",
+    "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "cookie": cookie,
+    "origin": "https://www.schedulista.com",
+    "priority": "u=1, i",
+    "referer": "https://www.schedulista.com/calendar/new",
+    "sec-ch-ua": '"Chromium";v="134", "Not:A-Brand";v="24", "Google Chrome";v="134"',
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-platform": '"Android"',
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-origin",
+    "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36",
+    "x-csrf-token": "lH//3G9WOkpBGFVS1mbtS0RhxvZyufceFV2YNqADIUTQwWitWvZmYaSArIfPJc0+EpGczMLZ4U/40mgp4+k8kw==",
+    "x-requested-with": "XMLHttpRequest"
+}
+
+def create_appointment(client_id,name,phone_number,start_time="",end_time="2025-04-02T10:00:00",note=""):
+    url = "https://www.schedulista.com/calendar/create_appointment_v2"
+    payload = {
+        "utf8": "✓",
+        "authenticity_token": "Lwc8REmV32aWFCG26x0zcpQQPOjtykDclHBvUX599wlruas1fDWDTXOM2GPyXhMHwuBm0l2qVo15/59OPZfq3g==",
+        "appointment_id": "",
+        "personal_appointment_id": "",
+        "is_appointment_edit": "true",
+        "orig_start_time": "",
+        "business_id": "1073945781",
+        "recurrence[formatted_recurrence_ends_on_date]": "",
+        "provider_id": "1074006821",
+        "is_gap_appointment": "false",
+        "is_recurring_appointment": "false",
+        "color": "",
+        "service_id": "1074611095",
+        "date": "20250330",
+        "start_time": start_time,
+        "end_time": end_time,
+        "duration": "60",
+        "appointment[beginning_duration_minutes]": "5",
+        "appointment[gap_duration_minutes]": "5",
+        "appointment[finish_duration_minutes]": "5",
+        "max_capacity": "",
+        "recurrence[mode]": "none",
+        "coupon_redemption_code": "",
+        "recurrence[repeat_every_n_days]": "1",
+        "recurrence[repeat_every_n_weeks]": "1",
+        "recurrence[repeat_every_n_months]": "1",
+        "recurrence[repeat_every_n_years]": "1",
+        "recurrence[days][1]": "1",
+        "recurrence[monthly_nth_day]": "-1",
+        "recurrence[monthly_repeat_by]": "day_of_week",
+        "recurrence[end_mode]": "never",
+        "recurrence[ends_after_occurrences]": "10",
+        "recurrence[ends_on_date]": "",
+        "business_client_id": "",
+        "client_search": "",
+        "business_client[id]": f"{client_id}",
+        "location": "",
+        "appointment_notes": note,
+        "send_client_notifications": "false",
+        "personal_message": "",
+        "update_all_future": "false"
+    }
+
+    response = requests.post(url, headers=headers, data=payload)
+
+    print("Response Status Code:", response.status_code)
+    print("Response Text:", response.text)
+    return response.json()
+
+def create_client(name,phone_number):
+    url = "https://www.schedulista.com/clients/create_client"
+    first_name = name.split(" ")[0]
+    last_name = name.split(" ")[1] or ""
+    payload = {
+    "utf8": "✓",
+    "authenticity_token": "Lwc8REmV32aWFCG26x0zcpQQPOjtykDclHBvUX599wlruas1fDWDTXOM2GPyXhMHwuBm0l2qVo15/59OPZfq3g==",
+    "business_client[first_name]": f"{first_name}",
+    "business_client[last_name]": f"{last_name}",   
+    "business_client[phone]": f"{phone_number}",
+    "business_client[sms_on]": "0",
+    "business_client[sms_reminder_lead_time_minutes]": "60",
+    "business_client[email]": "",
+    "business_client[time_zone]": "",
+    "business_client[notes]": ""
+    }
+
+    response = requests.post(url, headers=headers, data=payload)
+    print("Response Status Code:", response.status_code)
+    print("Response Text:", response.text)
+    return response.json()
+
+def reschedule(appointment_id="",client_id=""):
+    url = "https://www.schedulista.com/calendar/update_appointment_v2"
+
+    payload = {
+        "utf8": "✓",
+        "authenticity_token": "FZMaKUCVcAdtuhcShgyxJMx96njWDqRmMMSu7oBApRxRLY1YdTUsLIgi7sefT5FRmo2wQmZusjfdS17xw6q4yw==",
+        "appointment_id": "1124459772",
+        "personal_appointment_id": "",
+        "is_appointment_edit": "true",
+        "orig_start_time": "",
+        "business_id": "1073945781",
+        "recurrence[formatted_recurrence_ends_on_date]": "",
+        "is_gap_appointment": "false",
+        "is_recurring_appointment": "false",
+        "color": "",
+        "service_id": "1074611095",
+        "date": "20250331",
+        "start_time": "2025-03-31T10:00:00",
+        "end_time": "2025-03-31T11:00:00",
+        "duration": "60",
+        "appointment[beginning_duration_minutes]": "5",
+        "appointment[gap_duration_minutes]": "5",
+        "appointment[finish_duration_minutes]": "5",
+        "max_capacity": "",
+        "recurrence[mode]": "none",
+        "coupon_redemption_code": "",
+        "recurrence[repeat_every_n_days]": "1",
+        "recurrence[repeat_every_n_weeks]": "1",
+        "recurrence[repeat_every_n_months]": "1",
+        "recurrence[repeat_every_n_years]": "1",
+        "recurrence[monthly_nth_day]": "-1",
+        "recurrence[monthly_repeat_by]": "day_of_week",
+        "recurrence[end_mode]": "never",
+        "recurrence[ends_after_occurrences]": "10",
+        "recurrence[ends_on_date]": "",
+        "business_client_id": "",
+        "client_search": "",
+        "business_client[id]": "1082988680",
+        "location": "",
+        "appointment_notes": "",
+        "send_client_notifications": "false",
+        "personal_message": "",
+        "update_all_future": "false"
+    }
+
+    response = requests.post(url, headers=headers, data=payload)
+    print("Response Status Code:", response.status_code)
+    print("Response Text:", response.text)
+    return response.json()
+
+def cancel_appointments(appointment_id=""):
+    url = 'https://www.schedulista.com/calendar/cancel_appointment_v2'
+    payload = {
+        "delete_mode": "instance",
+        "send_client_notifications": True,
+        "personal_message": "",
+        "appointment_id": 1124459966,
+        "is_no_show": False
+    }
+
+    response = requests.post(url, headers=headers, data=payload)
+    print("Response Status Code:", response.status_code)
+    print("Response Text:", response.text)
+    return response.json()
+
+def get_clients(query):
+    url = "https://www.schedulista.com/clients/clients_json"
+    payload = {
+            "q":query
+            }
+
+    response = requests.get(url, headers=headers, data=payload)
+    print(f"Request for {url}\n","Response Status Code:", response.status_code)
+    print("Response Text:", response.text)
+    return list(response.json())
+
+def get_activities():
+    url = "https://www.schedulista.com/home/fetch_activities_json?page_size=5&page=2"
+    payload = {
+            "page_size":"5",
+            "page":"1"
+            }
+
+    response = requests.get(url, headers=headers, data=payload)
+    print(f"Request for {url}\n","Response Status Code:", response.status_code)
+
+
+
+# get_clients("+443")
+# get_activities()
+# cancel_appointments()
+# reschedule()
+# create_client()
+# book(1082988709)

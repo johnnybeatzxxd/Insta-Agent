@@ -54,8 +54,8 @@ function_descriptions = [
             }
         },
         {
-            "name": "confirm_payment",
-            "description": "Confirms the payment transaction after receiving the screenshot and other details.",
+            "name": "book_appointment",
+            "description": "This function lets you book an appointment for the user",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -63,17 +63,17 @@ function_descriptions = [
                         "type": "string",
                         "description": "The name of the service booked.",
                     },
-                    "deposit": {
+                    "deposit_amount": {
                         "type": "number",
                         "description": "deposit that the user made in the screenshot for lock the appointment",
                     },
-                     "deal_price": {
+                    "deal_price": {
                         "type": "number",
                         "description": "The deal price or discounted price of the service booked if any.",
                     },
                     "booked_datetime": {
                         "type": "string",
-                        "description": "The date of the appointment.",
+                        "description": "The date of the appointment.YYYY-MM-DD'T'HH:mm:ss format!",
                     },
                     "name": {
                         "type": "string",
@@ -81,10 +81,14 @@ function_descriptions = [
                     },
                     "phone_number": {
                         "type": "string",
-                        "description": "The customer's phone number.",
+                        "description": "The customer's phone number in this format +442012345678.it should be atleast 10 digit.",
                     },
+                    "note":{
+                        "type": "string",
+                        "description": "short discription about the appointment. should include service name,user name, deposit_amount,deal_price",
+                        }
                 },
-                "required": ["service", "deposit","deal_price", "booked_datetime", "name", "phone_number"],
+                "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name", "phone_number"],
             }
         },
         {
@@ -166,13 +170,14 @@ class llm:
             date = function_args.get("date")
             if date:
                 available_on = functions.availablity(date)
-                return {"function_response":f"this are the times we are available tell the user well:\n{available_on}","image":None}
+                return {"function_response":f"this are the times we are available suggest the user the earliest time:\n{available_on}","image":None}
 
-        if function_name == "confirm_payment": 
+        if function_name == "book_appointment": 
             ap = function_args 
             ap["payment_confirmed"] = False
-            appointment_id = database.set_appointment(_id,ap,owner_id)
-            return {"function_response":f"The transaction is being confirmed! Appointment ID: {appointment_id}. Tell the user 'I am checking the transaction give me a moment'","image":None}
+            response = functions.book_appointment(_id,ap,owner_id)
+            
+            return {"function_response":response,"image":None}
 
         if function_name == "get_user_appointments":
             phone_number = function_args.get("phone_number",None)

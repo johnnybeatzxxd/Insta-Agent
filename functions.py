@@ -3,6 +3,47 @@ import json
 from datetime import datetime, date, timedelta  
 import calendar
 import database
+import schedulista_api
+
+
+
+def book_appointment(_id,args,owner_id):
+    name = args.get("name")
+    phone_number = args.get("phone_number")
+    service = args.get("service")
+    deposit_amount = args.get("deposit_amount")
+    deal_price = args.get("deal_price")
+    booked_datetime = args.get("booked_datetime")
+    note = args.get("note")
+    duration = args.get("duration","60")
+    
+    client = schedulista_api.get_clients(phone_number)
+    if client:
+        client = client[0][0]
+        client_id = client.get("id")
+    else:
+        try:
+            client = schedulista_api.create_client(name,phone_number)
+            if client.get("errors"):
+                raise client["errors"][0]
+            client_id = client["id"]
+        except Exception as error:
+            print(error)
+            return str(error)
+
+    args["client_id"] = client_id
+    # save into the database 
+    database.set_appointment(_id,args,owner_id)
+    # create an appointment
+    appointment = schedulista_api.create_appointment(
+            client_id=client_id,
+            name=name,
+            phone_number=phone_number,
+            start_time=booked_datetime,
+            note=note
+            )
+    appointment_id = appointment["created_appointment"]["id"]
+    return f"Appointment has been booked. Appointment ID: {appointment_id}"
 
 def get_information(key, owner_id):
     info = database.get_dataset(owner_id)
@@ -149,8 +190,5 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    sche = {'today': {'date': '2025-03-30', 'day': 'Sunday'}, 'available_times': [{'start_time': '2025-03-31T09:00:00-0400', 'provider_id'
-: 1074001982}, {'start_time': '2025-03-31T12:30:00-0400', 'provider_id': 1074001982}, {'start_time': '2025-03-31T13:00:00-0400'
-, 'provider_id': 1074001982}, {'start_time': '2025-03-31T15:00:00-0400', 'provider_id': 1074001982}]}
-    print(is_time_available("2025-03-31 12:40",sche))
-    pass
+    payload = {'deal_price': 90, 'phone_number': '+251977276556', 'name': 'Ashley Rosa', 'service': 'Eyelash Extensions - Classic Set', 'deposit_amount': 20, 'booked_datetime': '2025-04-04T09:00:00', 'note': 'Classic Eyelash Extensions for Ashley Rosa, deposit $20, deal price $90'}
+    print(book_appointment(123,payload,456))
