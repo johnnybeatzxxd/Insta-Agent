@@ -31,7 +31,7 @@ headers = {
     "x-requested-with": "XMLHttpRequest"
 }
 
-def create_appointment(client_id,name,phone_number,start_time="",end_time="2025-04-02T10:00:00",note=""):
+def create_appointment(client_id,name,phone_number,start_time="",end_time="2025-04-02T10:00:00",duration="60",note=""):
     url = "https://www.schedulista.com/calendar/create_appointment_v2"
     payload = {
         "utf8": "✓",
@@ -50,7 +50,7 @@ def create_appointment(client_id,name,phone_number,start_time="",end_time="2025-
         "date": "20250330",
         "start_time": start_time,
         "end_time": end_time,
-        "duration": "60",
+        "duration": duration,
         "appointment[beginning_duration_minutes]": "5",
         "appointment[gap_duration_minutes]": "5",
         "appointment[finish_duration_minutes]": "5",

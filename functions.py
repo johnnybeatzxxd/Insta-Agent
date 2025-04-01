@@ -198,5 +198,5 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    payload = {'booked_datetime': '2025-04-03T09:00:00', 'deposit_amount': 20, 'phone_number': '+14155557890', 'note': 'Classic Lash Extension, Ashley Benson, $20 deposit, $90 price', 'deal_price': 90, 'name': 'Ashley Benson', 'service': 'Classic Lash Extension'}
+    payload = {'booked_datetime': '2025-04-04T09:00:00-0400', 'deposit_amount': 20, 'phone_number': '+14155557890', 'note': 'Classic Lash Extension, Ashley Benson, $20 deposit, $90 price', 'deal_price': 90, 'name': 'Ashley Benson', 'service': 'Classic Lash Extension'}
     print(book_appointment(123,payload,456))
