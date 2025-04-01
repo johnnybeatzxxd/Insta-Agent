@@ -205,9 +205,10 @@ class llm:
             return {"function_response":"error: specified date is not available","image":None}
 
         if function_name == "cancel_appointment":
-            _id = function_args.get("_id")
-            user_appointments = database.cancel_appointment(_id)
-            return {"function_response":"the appointment has been cancelled!","image":None}
+            appointment_id = function_args.get("appointment_id")
+            user_appointments = database.cancel_appointment(appointment_id)
+            schedulista = functions.cancel_appointment(appointment_id)
+            return {"function_response":f"appointment has been cancelled! contact @iamtonybart for refund!","image":None}
 
 
     def generate_response(self,_id,messages,owner_id):

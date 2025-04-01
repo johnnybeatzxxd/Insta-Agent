@@ -144,7 +144,7 @@ def reschedule(client_id,appointment_id,start_time,end_time,duration):
         "business_client[id]": client_id,
         "location": "",
         "appointment_notes": "",
-        "send_client_notifications": "false",
+        "send_client_notifications": True,
         "personal_message": "",
         "update_all_future": "false"
     }
@@ -154,13 +154,13 @@ def reschedule(client_id,appointment_id,start_time,end_time,duration):
     print("Response Text:", response.text)
     return response.json()
 
-def cancel_appointments(appointment_id=""):
+def cancel_appointment(appointment_id):
     url = 'https://www.schedulista.com/calendar/cancel_appointment_v2'
     payload = {
         "delete_mode": "instance",
         "send_client_notifications": True,
         "personal_message": "",
-        "appointment_id": 1124459966,
+        "appointment_id": appointment_id,
         "is_no_show": False
     }
 

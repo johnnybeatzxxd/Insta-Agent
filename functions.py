@@ -5,8 +5,8 @@ import calendar
 import database
 import schedulista_api
 
-def cancel_appointment(client_id,appointment_id):
-    pass
+def cancel_appointment(appointment_id):
+    schedulista_api.cancel_appointment(appointment_id)
 
 def reschedule_appointment(client_id,appointment_id,start_time,duration):
     start_time = start_time[:19]

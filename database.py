@@ -77,13 +77,8 @@ def reschedule_appointment(appointment_id,date):
             )
 
 def cancel_appointment(appointment_id):
-    if ObjectId.is_valid(appointment_id):
-        object_id = ObjectId(appointment_id)
-    else:
-        raise ValueError("Invalid ObjectId format")
-    object_id = ObjectId(appointment_id)
     appointments.update_one(
-            {"_id":object_id},
+            {"_id":appointment_id},
             {"$set":{"cancelled":True}}
             )
 
