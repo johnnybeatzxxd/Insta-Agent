@@ -5,7 +5,15 @@ import calendar
 import database
 import schedulista_api
 
+def cancel_appointment(client_id,appointment_id):
+    pass
 
+def reschedule_appointment(client_id,appointment_id,start_time,duration):
+    start_time = start_time[:19]
+    dt = datetime.fromisoformat(start_time)
+    end_time = dt + timedelta(minutes=int(duration))
+    end_time = end_time.strftime("%Y-%m-%dT%H:%M:%S")
+    appointment = schedulista_api.reschedule(client_id,appointment_id,start_time,end_time,duration)
 
 def book_appointment(_id,args,owner_id):
     name = args.get("name")
@@ -34,12 +42,11 @@ def book_appointment(_id,args,owner_id):
 
     args["client_id"] = client_id
     # save into the database 
-    database.set_appointment(_id,args,owner_id)
     # create an appointment
+    start_time = start_time[:19]
     dt = datetime.fromisoformat(start_time)
     end_time = dt + timedelta(minutes=int(duration))
     end_time = end_time.strftime("%Y-%m-%dT%H:%M:%S")
-    print(end_time)
     
     appointment = schedulista_api.create_appointment(
             client_id=client_id,
@@ -49,8 +56,10 @@ def book_appointment(_id,args,owner_id):
             end_time=str(end_time),
             duration=duration,
             note=note
-            )
+        )
     appointment_id = appointment["created_appointment"]["id"]
+    args["appointment_id"] = appointment_id
+    database.set_appointment(_id,args,owner_id)
     return f"Appointment has been booked. Appointment ID: {appointment_id}"
 
 def get_information(key, owner_id):
@@ -184,11 +193,14 @@ def is_time_available(appointment_time, schedule):
     for slot in schedule.get("available_times"):
         slot_time = slot["start_time"][:19]  # Extract only the YYYY-MM-DDTHH:MM:SS part
 
-        # Convert both times to a common format
+        # Convert slot time to a common format
         formatted_slot_time = datetime.strptime(slot_time, "%Y-%m-%dT%H:%M:%S")
 
         try:
-            formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%d %H:%M:%S")
+            if "T" in appointment_time:  # Handle ISO 8601 format
+                formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%dT%H:%M:%S")
+            else:
+                formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%d %H:%M:%S")
         except ValueError:
             formatted_appointment_time = datetime.strptime(appointment_time, "%Y-%m-%d %H:%M")  # Handle missing seconds
 
@@ -198,5 +210,6 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    payload = {'booked_datetime': '2025-04-04T09:00:00-0400', 'deposit_amount': 20, 'phone_number': '+14155557890', 'note': 'Classic Lash Extension, Ashley Benson, $20 deposit, $90 price', 'deal_price': 90, 'name': 'Ashley Benson', 'service': 'Classic Lash Extension'}
-    print(book_appointment(123,payload,456))
+    pass
+    # payload = {'deposit_amount': 25, 'deal_price': 90, 'name': 'Ashley Benson', 'note': 'Hybrid lashes, Ashley Benson, $25 deposit', 'phone_number': '+14155557890', 'booked_datetime': '2025-04-04T09:00:00:00:00:00', 'service': 'Hybrid'}
+    # print(book_appointment(123,payload,456))

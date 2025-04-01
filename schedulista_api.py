@@ -105,13 +105,12 @@ def create_client(name,phone_number):
     print("Response Text:", response.text)
     return response.json()
 
-def reschedule(appointment_id="",client_id=""):
+def reschedule(client_id,appointment_id,start_time,end_time,duration):
     url = "https://www.schedulista.com/calendar/update_appointment_v2"
-
     payload = {
         "utf8": "✓",
         "authenticity_token": "FZMaKUCVcAdtuhcShgyxJMx96njWDqRmMMSu7oBApRxRLY1YdTUsLIgi7sefT5FRmo2wQmZusjfdS17xw6q4yw==",
-        "appointment_id": "1124459772",
+        "appointment_id": appointment_id,
         "personal_appointment_id": "",
         "is_appointment_edit": "true",
         "orig_start_time": "",
@@ -122,9 +121,9 @@ def reschedule(appointment_id="",client_id=""):
         "color": "",
         "service_id": "1074611095",
         "date": "20250331",
-        "start_time": "2025-03-31T10:00:00",
-        "end_time": "2025-03-31T11:00:00",
-        "duration": "60",
+        "start_time": start_time,
+        "end_time": end_time,
+        "duration": duration,
         "appointment[beginning_duration_minutes]": "5",
         "appointment[gap_duration_minutes]": "5",
         "appointment[finish_duration_minutes]": "5",
@@ -142,7 +141,7 @@ def reschedule(appointment_id="",client_id=""):
         "recurrence[ends_on_date]": "",
         "business_client_id": "",
         "client_search": "",
-        "business_client[id]": "1082988680",
+        "business_client[id]": client_id,
         "location": "",
         "appointment_notes": "",
         "send_client_notifications": "false",

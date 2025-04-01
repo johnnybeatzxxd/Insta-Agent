@@ -71,15 +71,8 @@ def set_instruction(_id,instruction):
     )
 
 def reschedule_appointment(appointment_id,date):
-
-    # Validate before converting
-    if ObjectId.is_valid(appointment_id):
-        object_id = ObjectId(appointment_id)
-    else:
-        raise ValueError("Invalid ObjectId format")
-    object_id = ObjectId(appointment_id)
     appointments.update_one(
-            {"_id":object_id},
+            {"appointment_id":appointment_id},
             {"$set":{"booked_datetime":date}}
             )
 

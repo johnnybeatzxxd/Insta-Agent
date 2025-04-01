@@ -107,20 +107,24 @@ function_descriptions = [
         },
         {
             "name": "reschedule_appointment",
-            "description": "This function lets you reschedule appointment. it takes _id of the appointment and date time. dont not ask the user for an id you should call get_user_appointments function first. availablity must be checked before calling this function",
+            "description": "This function lets you reschedule appointment. it takes appointment_id of the appointment and date time. dont not ask the user for an id you should call get_user_appointments function first. availablity must be checked before calling this function",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "_id": {
+                    "appointment_id": {
                         "type": "string",
-                        "description": "the _id of the appointment fetched from get_user_appointments function"
+                        "description": "the appointment_id of the appointment fetched from get_user_appointments function"
+                    },
+                    "client_id": {
+                        "type": "string",
+                        "description": "client_id fetched from get_user_appointments function"
                     },
                     "date_time": {
                         "type": "string",
-                        "description": "date time of the new rescheduled appointment"
+                        "description": "date time of the new rescheduled appointment in YYYY-MM-DD'T'HH:mm format!"
                     },
                 },
-                "required": ["_id","date_time"],
+                "required": ["appointment_id","client_id","date_time"],
             }
         },
         {
@@ -129,12 +133,12 @@ function_descriptions = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "_id": {
+                    "appointment_id": {
                         "type": "string",
-                        "description": "the _id of the appointment fetched from get_user_appointments function"
+                        "description": "the appointment_id of the appointment fetched from get_user_appointments function"
                     },
                 },
-                "required": ["_id"],
+                "required": ["appointment_id"],
             },
         },
 
@@ -186,15 +190,17 @@ class llm:
 
         if function_name == "reschedule_appointment":
             date_time = function_args.get("date_time")
-            appointment_id = function_args.get("_id")
-            date = date_time.split(" ")[0]
-            time = date_time.split(" ")[1]
-
+            appointment_id = function_args.get("appointment_id")
+            client_id = function_args.get("client_id")
+            duration = function_args.get("duration","60")
+            date = date_time[:10]
             available_on = json.loads(functions.availablity(date))
 
             print(available_on)
             if functions.is_time_available(date_time, available_on):
                 user_appointments = database.reschedule_appointment(appointment_id,date_time)
+                reschedule_appointment = functions.reschedule_appointment(client_id,appointment_id,date_time,duration)
+
                 return {"function_response":"appointment rescheduled!","image":None}
             return {"function_response":"error: specified date is not available","image":None}
 
