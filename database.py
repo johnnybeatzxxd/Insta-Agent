@@ -5,6 +5,7 @@ import json
 from pymongo.synchronous import database
 import actions
 from bson import ObjectId
+from datetime import datetime
 
 load_dotenv(override=True)
 
@@ -15,6 +16,7 @@ Users = db['users']
 Data = db['data']
 creds = db['creds']
 appointments = db['appointments']
+notifications = db['notifications']
 
 
 def reset_conversation(_id,owner_id):
@@ -78,7 +80,7 @@ def reschedule_appointment(appointment_id,date):
 
 def cancel_appointment(appointment_id):
     appointments.update_one(
-            {"_id":appointment_id},
+            {"appointment_id":appointment_id},
             {"$set":{"cancelled":True}}
             )
 
@@ -87,9 +89,17 @@ def set_appointment(_id,appointment,owner_id):
     temp["user_id"] = _id
     temp["owner_id"] = owner_id
     temp["cancelled"] = False
-
     temp = appointments.insert_one(temp)
     return temp.inserted_id
+
+def send_notification(_id,note,owner_id):
+    notification = {"user_id":_id,"owner_id":owner_id,"note":note,"viewed":False,"created_at":str(datetime.now())}
+    profile = actions.get_profile(_id)
+    notification["name"] = profile["name"]
+    notification["username"] = profile["username"]
+    notifications.insert_one(notification)
+    return None
+
 
 def get_user_appointments(_id,owner_id,phone_number=None):
     query = {}
@@ -158,5 +168,5 @@ class auth:
 
 if __name__ == "__main__":
     pass
-    info = get_dataset(17841433182941465)
+    info = send_notification(1124492214,"hello world",123)
     print(info)

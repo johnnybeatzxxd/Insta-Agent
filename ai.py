@@ -85,10 +85,10 @@ function_descriptions = [
                     },
                     "note":{
                         "type": "string",
-                        "description": "short discription about the appointment. should include service name,user name, deposit_amount,deal_price",
+                        "description": "discription about the appointment. should include service name,user name, deposit_amount,deal_price",
                         }
                 },
-                "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name", "phone_number"],
+                "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name", "phone_number","note"],
             }
         },
         {
@@ -123,8 +123,12 @@ function_descriptions = [
                         "type": "string",
                         "description": "date time of the new rescheduled appointment in YYYY-MM-DD'T'HH:mm format!"
                     },
+                    "note": {
+                        "type": "string",
+                        "description": "discription about the client and rescheduled appointment include user info like name, phone number and service name"
+                    },
                 },
-                "required": ["appointment_id","client_id","date_time"],
+                "required": ["appointment_id","client_id","date_time","note"],
             }
         },
         {
@@ -137,8 +141,12 @@ function_descriptions = [
                         "type": "string",
                         "description": "the appointment_id of the appointment fetched from get_user_appointments function"
                     },
+                    "note": {
+                        "type": "string",
+                        "description": "discription about the client and cancelled appointment. include user info like name, phone number and service name"
+                    },
                 },
-                "required": ["appointment_id"],
+                "required": ["appointment_id","note"],
             },
         },
 
@@ -179,7 +187,9 @@ class llm:
         if function_name == "book_appointment": 
             ap = function_args 
             ap["payment_confirmed"] = False
+            note = function_args.get("note")
             response = functions.book_appointment(_id,ap,owner_id)
+            notification = database.send_notification(_id,note,owner_id)
             
             return {"function_response":response,"image":None}
 
@@ -194,20 +204,24 @@ class llm:
             client_id = function_args.get("client_id")
             duration = function_args.get("duration","60")
             date = date_time[:10]
+            note = function_args.get("note")
             available_on = json.loads(functions.availablity(date))
 
             print(available_on)
             if functions.is_time_available(date_time, available_on):
                 user_appointments = database.reschedule_appointment(appointment_id,date_time)
                 reschedule_appointment = functions.reschedule_appointment(client_id,appointment_id,date_time,duration)
+                notification = database.send_notification(_id,note,owner_id)
 
                 return {"function_response":"appointment rescheduled!","image":None}
             return {"function_response":"error: specified date is not available","image":None}
 
         if function_name == "cancel_appointment":
             appointment_id = function_args.get("appointment_id")
+            note = function_args.get("note")
             user_appointments = database.cancel_appointment(appointment_id)
             schedulista = functions.cancel_appointment(appointment_id)
+            notification = database.send_notification(_id,note,owner_id)
             return {"function_response":f"appointment has been cancelled! contact @iamtonybart for refund!","image":None}
 
 

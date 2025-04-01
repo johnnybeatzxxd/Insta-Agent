@@ -179,10 +179,20 @@ def get_conversations(access_token):
         data = response.json()
         return data
     return None
- 
+
+def get_profile(_id):
+    access_token = os.environ.get("long_access_token")
+    url = f"https://graph.instagram.com/v22.0/{_id}"
+    payload = {
+        "fields": "name,username",
+        "access_token": access_token
+        }
+    response = requests.get(url, params=payload)
+    if response.status_code == 200:
+        data = response.json()
+        return data
+
 
 if __name__ == "__main__":
-    print("database gone!")
-    # get_conversations()
-    send_text_message(1660159627957434,"hi")
+    print(get_profile(1660159627957434))
 
