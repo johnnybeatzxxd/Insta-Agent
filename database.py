@@ -131,11 +131,15 @@ def get_instruction(owner_id):
 def get_active_users(owner_id):
     active_users = Users.find({"active":True,"owner_id":owner_id})
     return active_users
+
 def get_users(owner_id):
     users = Users.find({"owner_id":owner_id})
     if users is None:
         users = []
     return users 
+def get_notifications(_id):
+    n = notifications.find({"owner_id":_id})
+    return list(n)
 def delete_customer(_id,owner_id):
     Users.remove({"_id":_id,"owner_id":owner_id})
 

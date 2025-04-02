@@ -220,6 +220,27 @@ def data():
         business_data = body.get("business_data")
         database.set_dataset(owner_id,business_data)
         return jsonify({'message': "Business data saved!"}), 200
+
+@app.route('/get_notifications',methods=['GET'])
+def get_notifications():
+    if request.method == "GET":
+        # Get Authorization header
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': "Missing or invalid Authorization header"}), 400
+            
+        cookie = auth_header.split(' ')[1]  # Extract token after 'Bearer '
+        
+        authentication = database.auth()
+        print("sending")
+        user = authentication.login(cookie=cookie)
+        print(user)
+        if user is None:
+            return jsonify({'message': "wrong credentials"}), 400
+        owner_id = user.get("_id")
+        notificaitons = database.get_notifications(owner_id)
+
+
     
 if __name__ == '__main__':
     port = int(os.getenv('PORT', 5000))
