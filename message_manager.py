@@ -30,7 +30,7 @@ def process_message_batch(sender_id,owner_id):
             
             if database.check_user_active(sender_id,owner_id):
                 latest_conversation = database.get_conversation(sender_id,owner_id)
-                print("Processing batched conversation:", latest_conversation)
+                # print("Processing batched conversation:", latest_conversation)
                 # Process with AI
                 llm = ai.llm(owner_id)
                 # process_query now returns all messages added by the AI this turn

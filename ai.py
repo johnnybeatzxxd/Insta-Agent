@@ -199,23 +199,25 @@ class llm:
             ap["payment_confirmed"] = False
             note = function_args.get("note")
             notification = {}
+            detail = {}
             notification["Type"] = "book appointment"
-            notification["Service"] = function_args.get("service")
-            notification["Appointment date"] = function_args.get("booked_datetime")
-            notification["Deposit amount"] = function_args.get("deposit_amount")
-            notification["Deal price"] = function_args.get("deal_price")
-            notification["Phone number"] = function_args.get("phone_number")
+            detail["Service"] = function_args.get("service")
+            detail["Appointment date"] = function_args.get("booked_datetime")
+            detail["Deposit amount"] = function_args.get("deposit_amount")
+            detail["Deal price"] = function_args.get("deal_price")
+            detail["Phone number"] = function_args.get("phone_number")
             notification["Note"] = function_args.get("note")
+            notification["details"] = detail
 
             response = functions.book_appointment(_id,ap,owner_id)
             notification = database.send_notification(_id,notification,owner_id)
             
-            return {"function_response":response,"image":None}
+            return {"function_response":str(response),"image":None}
 
         if function_name == "get_user_appointments":
             phone_number = function_args.get("phone_number",None)
             user_appointments = database.get_user_appointments(_id,owner_id,phone_number=phone_number)
-            return {"function_response":user_appointments,"image":None}
+            return {"function_response":str(user_appointments),"image":None}
 
         if function_name == "reschedule_appointment":
             date_time = function_args.get("date_time")
@@ -223,6 +225,7 @@ class llm:
             client_id = function_args.get("client_id")
             duration = function_args.get("duration","60")
             date = date_time[:10]
+            notification = {}
             notification["note"] = function_args.get("note")
             notification["type"] = "reschedule appointment"
             available_on = json.loads(functions.availablity(date))
@@ -230,15 +233,17 @@ class llm:
             if functions.is_time_available(date_time, available_on):
                 user_appointments = database.reschedule_appointment(appointment_id,date_time)
                 reschedule_appointment = functions.reschedule_appointment(client_id,appointment_id,date_time,duration)
-                notification = database.send_notification(_id,note,owner_id)
+                database.send_notification(_id,notification,owner_id)
 
                 return {"function_response":"appointment rescheduled!","image":None}
             return {"function_response":"error: specified date is not available","image":None}
 
         if function_name == "cancel_appointment":
             appointment_id = function_args.get("appointment_id")
+            notification = {}
             note = function_args.get("note")
-            note["type"] = "cancel appointment"
+            notification["type"] = "cancel appointment"
+            notification["note"] = note
             user_appointments = database.cancel_appointment(appointment_id)
             schedulista = functions.cancel_appointment(appointment_id)
             notification = database.send_notification(_id,note,owner_id)
@@ -248,6 +253,7 @@ class llm:
         system_message = {"role": "system", "content": self.instruction}
         msg = messages.copy()
         msg.insert(0, system_message)
+        print(json.dumps(msg, indent=4))
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4o",
@@ -255,7 +261,7 @@ class llm:
                 tools=self.tools,
                 tool_choice="auto"
             )
-            print("response:",response)
+            # print("response:",response)
             return response
         except Exception as e:
             print(f"Error generating response: {e}")
