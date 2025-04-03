@@ -234,11 +234,11 @@ def get_notifications():
         authentication = database.auth()
         print("sending")
         user = authentication.login(cookie=cookie)
-        print(user)
         if user is None:
             return jsonify({'message': "wrong credentials"}), 400
         owner_id = user.get("_id")
         notificaitons = database.get_notifications(owner_id)
+        return jsonify({'notifications': notificaitons}), 200
 
 
     
