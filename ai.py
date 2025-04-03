@@ -250,7 +250,7 @@ class llm:
         msg.insert(0, system_message)
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="gpt-4o",
                 messages=msg,
                 tools=self.tools,
                 tool_choice="auto"
