@@ -19,7 +19,7 @@ owner_id = os.environ.get("owner_id")
 message_batches = defaultdict(list)
 batch_timers = {}
 batch_locks = defaultdict(threading.Lock)
-BATCH_WINDOW = 1  # seconds to wait for related messages
+BATCH_WINDOW = 5  # seconds to wait for related messages
 
 def process_message_batch(sender_id,owner_id):
     """Process a complete batch of messages from a sender"""

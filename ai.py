@@ -6,7 +6,7 @@ import time
 import os
 from dotenv import load_dotenv
 import traceback
-from openai import OpenAI
+from openai import OpenAI, APIConnectionError
 
 import functions
 load_dotenv(override=True)
@@ -254,18 +254,32 @@ class llm:
         msg = messages.copy()
         msg.insert(0, system_message)
         print(json.dumps(msg, indent=4))
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
-                messages=msg,
-                tools=self.tools,
-                tool_choice="auto"
-            )
-            # print("response:",response)
-            return response
-        except Exception as e:
-            print(f"Error generating response: {e}")
-            raise
+        
+        max_retries = 3
+        retry_delay = 3 # seconds
+
+        for attempt in range(max_retries):
+            try:
+                response = self.client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=msg,
+                    tools=self.tools,
+                    tool_choice="auto"
+                )
+                # print("response:",response)
+                return response # Success, return the response
+            except APIConnectionError as e:
+                print(f"Attempt {attempt + 1} failed with connection error: {e}")
+                if attempt < max_retries - 1:
+                    print(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    print("Max retries reached. Raising the connection error.")
+                    raise # Re-raise the exception after the last attempt
+            except Exception as e:
+                # Catch any other exceptions
+                print(f"Error generating response: {e}")
+                raise # Re-raise other exceptions immediately
 
     def process_query(self,_id,messages,owner_id):
         # Keep track of messages added during this turn (assistant + tool responses)
