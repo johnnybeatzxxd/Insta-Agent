@@ -39,10 +39,8 @@ def process_message_batch(sender_id,owner_id):
                 
                 # Save all AI-generated messages (assistant, tool_calls, tool responses) to DB
                 if ai_generated_messages:
-                    database.add_message(sender_id, ai_generated_messages, owner_id)
-                    print(f"Saved AI generated messages to DB for {sender_id}")
-
-                # Filter out only the user-facing text responses to send back
+                    # database.add_message(sender_id, ai_generated_messages, owner_id)
+                    print(f"Saved AI generated messages to DB for {sender_id}") # Filter out only the user-facing text responses to send back
                 user_facing_content = []
                 for msg in ai_generated_messages:
                     if msg.get("role") == "assistant" and msg.get("content"):

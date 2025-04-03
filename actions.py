@@ -3,7 +3,6 @@ import requests
 import os 
 from dotenv import load_dotenv
 import base64
-import database
 import re
 import time
 import random
