@@ -240,6 +240,28 @@ def get_notifications():
         notificaitons = database.get_notifications(owner_id)
         return jsonify({'notifications': notificaitons}), 200
 
+@app.route('/read_notification',methods=['POST'])
+def read_notification():
+    if request.method == "POST":
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return jsonify({'message': "Missing or invalid Authorization header"}), 400
+            
+        cookie = auth_header.split(' ')[1]  # Extract token after 'Bearer '
+        
+        authentication = database.auth()
+        user = authentication.login(cookie=cookie)
+        if user is None:
+            return jsonify({'message': "wrong credentials"}), 400
+
+        owner_id = user["_id"]
+        body = request.get_json()
+        notification_id = body.get("notification_id")        
+
+        database.read_notification(notification_id)
+
+        return jsonify({'message': "message marked as read"}), 200
+        
 
     
 if __name__ == '__main__':

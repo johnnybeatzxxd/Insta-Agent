@@ -154,6 +154,10 @@ def get_notifications(_id):
         notification["_id"] = str(notification.get("_id"))
         notis.append(notification)
     return notis
+def read_notification(_id):
+    obj_id = ObjectId(id_str)
+    notifications.update_one({"_id":obj_id},{"$set":{"viewed":True}})
+
 def delete_customer(_id,owner_id):
     Users.remove({"_id":_id,"owner_id":owner_id})
 

@@ -125,6 +125,10 @@ tools = [
                         "type": "string",
                         "description": "client_id fetched from get_user_appointments function"
                     },
+                    "previous_date": {
+                        "type": "string",
+                        "description": "the old date"
+                    },
                     "date_time": {
                         "type": "string",
                         "description": "date time of the new rescheduled appointment in YYYY-MM-DD'T'HH:mm format!"
@@ -153,6 +157,10 @@ tools = [
                     "note": {
                         "type": "string",
                         "description": "discription about the client and cancelled appointment. include user info like name, phone number and service name"
+                    },
+                    "date": {
+                        "type": "string",
+                        "description": "cancelled date"
                     },
                 },
                 "required": ["appointment_id","note"],
@@ -200,7 +208,7 @@ class llm:
             note = function_args.get("note")
             notification = {}
             detail = {}
-            notification["Type"] = "book appointment"
+            notification["type"] = "book appointment"
             detail["Service"] = function_args.get("service")
             detail["Appointment date"] = function_args.get("booked_datetime")
             detail["Deposit amount"] = function_args.get("deposit_amount")
@@ -221,6 +229,7 @@ class llm:
 
         if function_name == "reschedule_appointment":
             date_time = function_args.get("date_time")
+            previous_date = function_args.get("previous_date")
             appointment_id = function_args.get("appointment_id")
             client_id = function_args.get("client_id")
             duration = function_args.get("duration","60")
@@ -228,6 +237,11 @@ class llm:
             notification = {}
             notification["note"] = function_args.get("note")
             notification["type"] = "reschedule appointment"
+            details = {}
+            details["Original date"] = previous_date
+            details["Rescheduled to"] = date_time
+            details["Note"] = function_args.get("note")
+            notification["details"] = details
             available_on = json.loads(functions.availablity(date))
 
             if functions.is_time_available(date_time, available_on):
@@ -244,6 +258,9 @@ class llm:
             note = function_args.get("note")
             notification["type"] = "cancel appointment"
             notification["note"] = note
+            details = {}
+            details["Note"] = note
+            notification["details"] = details
             user_appointments = database.cancel_appointment(appointment_id)
             schedulista = functions.cancel_appointment(appointment_id)
             notification = database.send_notification(_id,note,owner_id)
