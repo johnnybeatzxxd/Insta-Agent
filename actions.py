@@ -13,16 +13,28 @@ load_dotenv(override=True)
 SHORT_CHUNK_THRESHOLD = 30 # Combine chunks shorter than this length with the next one
 # ---------------------
 
+def _preprocess_markdown_links(text):
+    """Replaces Markdown links [text](url) with 'text url'."""
+    # Regex to find Markdown links: [text](url)
+    markdown_link_pattern = r'\[(.*?)\]\((.*?)\)'
+    # Replace with "text url"
+    processed_text = re.sub(markdown_link_pattern, r'\1 \2', text)
+    return processed_text
+
 def _split_message_into_chunks(message_text):
     """Helper function to split text based on sentence terminators (unless followed by emoji) and newlines."""
-    # Regex to split messages after sentences/newlines.
-    # Splits after '.', '!', '?' ONLY if NOT followed by whitespace + emoji.
-    # Also splits after '\n'.
-    # Emoji range U+1F300 to U+1FADF covers many common emojis.
-    pattern = r'.+?(?:[.!?](?!(?:\s|\u00A0)*[\U0001F300-\U0001FADF])|\n)|.+'
+    # Preprocess to handle Markdown links first
+    processed_text = _preprocess_markdown_links(message_text)
 
-    # Find all matches based on the pattern
-    matches = re.finditer(pattern, message_text)
+    # Regex revised to prioritize URLs and handle sentence endings more carefully.
+    # 1. Match URLs: (?:https?://|ftps?://|www\.)[^\s]+
+    # 2. Match content up to a sentence end [.!?] followed by whitespace, emoji, or end-of-string ($), OR a newline (\n). Uses non-greedy .+?
+    # 3. Fallback: Match any remaining characters using .+
+    pattern = r'(?:https?://|ftps?://|www\.)[^\s]+|.+?(?:[.!?](?=\s+|[\U0001F300-\U0001FADF]|$)|\n)|.+'
+
+
+    # Find all matches based on the pattern using the processed text
+    matches = re.finditer(pattern, processed_text)
 
     # Create chunks, stripping leading/trailing whitespace
     message_chunks = [match.group(0).strip() for match in matches]
@@ -66,8 +78,11 @@ def send_text_message(recipient_id, message_text):
     """
     access_token = os.environ.get("long_access_token")
 
-    # Step 1: Split the message initially
-    initial_chunks = _split_message_into_chunks(message_text)
+    # Preprocess markdown links before splitting and combining
+    processed_message_text = _preprocess_markdown_links(message_text)
+
+    # Step 1: Split the processed message initially
+    initial_chunks = _split_message_into_chunks(processed_message_text)
 
     # Step 2: Combine short chunks
     final_chunks = _combine_short_chunks(initial_chunks, SHORT_CHUNK_THRESHOLD)
@@ -174,7 +189,7 @@ def get_profile(_id):
 
 if __name__ == "__main__":
     # Example usage for testing the splitting and combining
-    test_message = "Ok. Thanks! We have availability tomorrow, Friday! What time works best for you? Let me know. 🥰"
+    test_message = "or through Stripe here https://buy.stripe.com/5kA3e464sghNcz63cm."
     # test_message = "hey! lash extensions are currently $90 for any set (classic, hybrid, 2-3D, or 4-6D). what day are you thinking of coming in? 🥰"
 
 
