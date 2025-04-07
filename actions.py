@@ -3,84 +3,107 @@ import requests
 import os 
 from dotenv import load_dotenv
 import base64
-import database
+import re
+import time
+import random
 
 load_dotenv(override=True)
 
+# --- Configuration ---
+SHORT_CHUNK_THRESHOLD = 30 # Combine chunks shorter than this length with the next one
+# ---------------------
+
+def _preprocess_markdown_links(text):
+    """Replaces Markdown links [text](url) with 'text url'."""
+    # Regex to find Markdown links: [text](url)
+    markdown_link_pattern = r'\[(.*?)\]\((.*?)\)'
+    # Replace with "text url"
+    processed_text = re.sub(markdown_link_pattern, r'\1 \2', text)
+    return processed_text
+
+def _split_message_into_chunks(message_text):
+    """Helper function to split text based on sentence terminators (unless followed by emoji) and newlines."""
+    # Preprocess to handle Markdown links first
+    processed_text = _preprocess_markdown_links(message_text)
+
+    # Regex revised to prioritize URLs and handle sentence endings more carefully.
+    # 1. Match URLs: (?:https?://|ftps?://|www\.)[^\s]+
+    # 2. Match content up to a sentence end [.!?] followed by whitespace, emoji, or end-of-string ($), OR a newline (\n). Uses non-greedy .+?
+    # 3. Fallback: Match any remaining characters using .+
+    pattern = r'(?:https?://|ftps?://|www\.)[^\s]+|.+?(?:[.!?](?=\s+|[\U0001F300-\U0001FADF]|$)|\n)|.+'
+
+
+    # Find all matches based on the pattern using the processed text
+    matches = re.finditer(pattern, processed_text)
+
+    # Create chunks, stripping leading/trailing whitespace
+    message_chunks = [match.group(0).strip() for match in matches]
+
+    # Filter out any potentially empty chunks
+    message_chunks = [chunk for chunk in message_chunks if chunk]
+    return message_chunks
+
+def _combine_short_chunks(chunks, min_length):
+    """Combines consecutive chunks if the first one is shorter than min_length."""
+    if not chunks:
+        return []
+
+    combined_chunks = []
+    i = 0
+    while i < len(chunks):
+        current_chunk = chunks[i]
+
+        # Check if current chunk is short and there's a next chunk to combine with
+        if len(current_chunk) < min_length and (i + 1) < len(chunks):
+            # Combine with the next chunk
+            combined = current_chunk + " " + chunks[i+1]
+            combined_chunks.append(combined.strip()) # Add combined chunk
+            i += 2 # Skip the next chunk as it's already combined
+        else:
+            # Add the current chunk as is
+            combined_chunks.append(current_chunk)
+            i += 1 # Move to the next chunk
+
+    return combined_chunks
+
 def send_text_message(recipient_id, message_text):
     """
-    Sends a text message to a recipient using the Instagram Graph API
-    
+    Sends a text message to a recipient using the Instagram Graph API, splitting the message
+    into smaller chunks and combining short chunks for a more natural flow.
+    Includes a random delay between sending chunks.
+
     Args:
         recipient_id (str): The ID of the recipient
         message_text (str): The text message to send
     """
     access_token = os.environ.get("long_access_token")
-    
-    # Maximum message length allowed by Instagram
-    MAX_MESSAGE_LENGTH = 1000
-    
-    # Split the message into natural chunks
-    message_chunks = []
-    
-    # First try to split by paragraphs
-    paragraphs = message_text.split('\n')
-    current_chunk = ""
-    
-    for paragraph in paragraphs:
-        # If adding this paragraph would exceed the limit
-        if len(current_chunk + paragraph + '\n') > MAX_MESSAGE_LENGTH:
-            # If the paragraph itself is too long, split by sentences
-            if len(paragraph) > MAX_MESSAGE_LENGTH:
-                sentences = split_into_sentences(paragraph)
-                for sentence in sentences:
-                    # If the sentence is still too long, split by character
-                    if len(sentence) > MAX_MESSAGE_LENGTH:
-                        for i in range(0, len(sentence), MAX_MESSAGE_LENGTH):
-                            if current_chunk and len(current_chunk) + len(sentence[i:i+MAX_MESSAGE_LENGTH]) > MAX_MESSAGE_LENGTH:
-                                message_chunks.append(current_chunk.strip())
-                                current_chunk = ""
-                            current_chunk += sentence[i:i+MAX_MESSAGE_LENGTH]
-                            if len(current_chunk) >= MAX_MESSAGE_LENGTH:
-                                message_chunks.append(current_chunk.strip())
-                                current_chunk = ""
-                    else:
-                        if current_chunk and len(current_chunk) + len(sentence) > MAX_MESSAGE_LENGTH:
-                            message_chunks.append(current_chunk.strip())
-                            current_chunk = ""
-                        current_chunk += sentence
-                        if len(current_chunk) >= MAX_MESSAGE_LENGTH:
-                            message_chunks.append(current_chunk.strip())
-                            current_chunk = ""
-            else:
-                # Add the current chunk to our list of chunks
-                if current_chunk:
-                    message_chunks.append(current_chunk.strip())
-                current_chunk = paragraph + '\n'
-        else:
-            current_chunk += paragraph + '\n'
-    
-    # Don't forget the last chunk
-    if current_chunk:
-        message_chunks.append(current_chunk.strip())
-    
-    # If no chunks were created (empty message), return
-    if not message_chunks:
+
+    # Preprocess markdown links before splitting and combining
+    processed_message_text = _preprocess_markdown_links(message_text)
+
+    # Step 1: Split the processed message initially
+    initial_chunks = _split_message_into_chunks(processed_message_text)
+
+    # Step 2: Combine short chunks
+    final_chunks = _combine_short_chunks(initial_chunks, SHORT_CHUNK_THRESHOLD)
+
+    # If no final chunks were created, return
+    if not final_chunks:
+        print("No valid message chunks to send after combining.")
         return None
-    
+
     responses = []
     # API endpoint for sending messages
     url = "https://graph.instagram.com/v12.0/me/messages"
-    
-    # Request headers 
+
+    # Request headers
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    
-    
-    # Send each chunk as a separate message
-    for chunk in message_chunks:
+
+    # Send each final chunk as a separate message
+    for chunk in final_chunks:
         # Construct message payload
         payload = {
             "recipient": {
@@ -90,68 +113,39 @@ def send_text_message(recipient_id, message_text):
                 "text": chunk
             }
         }
-        
+
+        # --- Add Delay Before Sending ---
+        # Pause for a short, random time to simulate typing
+        delay_seconds = random.uniform(0.5, 3.0) # Delay between 0.5 and 1.5 seconds
+        print(f"Pausing for {delay_seconds:.2f} seconds...")
+        time.sleep(delay_seconds)
+        # --------------------------------
+
         # Send POST request
-        print(chunk)
+        print(f"Sending chunk: {chunk}")
         try:
             response = requests.post(
                 url,
                 headers=headers,
                 json=payload
             )
-            
+
             # Log response details
             print(f"Response Status Code: {response.status_code}")
-            
+
             try:
                 print(f"Response Body: {response.json()}")
             except requests.exceptions.JSONDecodeError:
                 print(f"Failed to decode JSON response. Raw response: {response.text}")
-                
+
             # Check if request was successful
             response.raise_for_status()
             responses.append(response)
-            
+
         except requests.exceptions.RequestException as e:
             print(f"Error sending message chunk: {str(e)}")
-    
-    return responses if responses else None
 
-def split_into_sentences(text):
-    """
-    Split text into sentences using common sentence terminators.
-    
-    Args:
-        text (str): The text to split
-        
-    Returns:
-        list: List of sentences
-    """
-    # Define sentence terminators
-    terminators = ['. ', '! ', '? ', '.\n', '!\n', '?\n']
-    sentences = []
-    
-    # Start with the full text
-    remaining_text = text
-    
-    while remaining_text:
-        # Find the earliest terminator
-        terminator_positions = [(remaining_text.find(term), term) for term in terminators if remaining_text.find(term) != -1]
-        
-        if terminator_positions:
-            # Get the earliest terminator
-            pos, term = min(terminator_positions, key=lambda x: x[0])
-            # Extract the sentence including the terminator
-            sentence = remaining_text[:pos + len(term)]
-            sentences.append(sentence)
-            # Update remaining text
-            remaining_text = remaining_text[pos + len(term):]
-        else:
-            # No terminator found, treat the rest as a sentence
-            sentences.append(remaining_text)
-            break
-    
-    return sentences
+    return responses if responses else None
 
 def image_to_base64(image_url):
     response = requests.get(image_url)
@@ -194,5 +188,43 @@ def get_profile(_id):
 
 
 if __name__ == "__main__":
-    print(get_profile(1660159627957434))
+    # Example usage for testing the splitting and combining
+    test_message = "or through Stripe here https://buy.stripe.com/5kA3e464sghNcz63cm."
+    # test_message = "hey! lash extensions are currently $90 for any set (classic, hybrid, 2-3D, or 4-6D). what day are you thinking of coming in? 🥰"
+
+
+    print(f"Original Message:\n{test_message}\n")
+    print("Processing message...")
+
+    # Step 1: Initial Split
+    initial_chunks = _split_message_into_chunks(test_message)
+
+    print("\nResulting Chunks (Initial Split):")
+    if initial_chunks:
+        for i, chunk in enumerate(initial_chunks):
+            print(f"  Chunk {i+1} (len={len(chunk)}): {chunk}")
+    else:
+        print("  No initial chunks generated.")
+
+    # Step 2: Combine Short Chunks
+    final_chunks = _combine_short_chunks(initial_chunks, SHORT_CHUNK_THRESHOLD)
+
+    print(f"\nResulting Chunks (After Combining Short Ones < {SHORT_CHUNK_THRESHOLD} chars):")
+    if final_chunks:
+        for i, chunk in enumerate(final_chunks):
+            print(f"  Final Chunk {i+1}: {chunk}")
+    else:
+        print("  No final chunks generated.")
+
+    # --- Optional: Simulate Sending ---
+    # print("\n--- Simulating Sending ---")
+    # if final_chunks:
+    #     for i, chunk in enumerate(final_chunks):
+    #         delay_seconds = random.uniform(0.5, 1.5)
+    #         print(f"Pausing for {delay_seconds:.2f} seconds...")
+    #         # time.sleep(delay_seconds) # Uncomment to actually pause
+    #         print(f"Sending final chunk {i+1}: {chunk}")
+    # else:
+    #     print("No chunks to send.")
+    # ----------------------------------
 

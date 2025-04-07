@@ -29,27 +29,36 @@ def check_user_active(_id,owner_id):
 def set_user_active(_id,enabled,owner_id):
     Users.update_one({"_id":_id},{"$set":{"active":enabled}})
 
-def add_message(_id, messages,owner_id, role=None):
-    """Adds messages to conversation, handling both single and bulk operations."""
+def add_message(_id, messages, owner_id):
+    """Adds messages to the conversation history for a user."""
     try:
-        # Handle legacy single message format
-        if not role:
-            messages = [{"role": role, "parts": messages}]
-        
+        # Ensure messages is always a list
+        if not isinstance(messages, list):
+            # This case should ideally not happen if called correctly,
+            # but provides a fallback just in case.
+            # Consider logging a warning here if it occurs.
+            print(f"Warning: add_message called with non-list messages for user {_id}. Converting.")
+            # Attempt to create a generic structure; adjust if needed based on expected input
+            messages = [{"role": "unknown", "content": str(messages)}]
+
+        if not messages:
+            print(f"Warning: add_message called with empty message list for user {_id}.")
+            return get_conversation(_id, owner_id) # Return current conversation
+
         Users.update_one(
-            {"_id": _id},
+            {"_id": _id, "owner_id": owner_id}, # Ensure we match owner_id too
             {
                 "$push": {"conversation": {"$each": messages}},
-                "$setOnInsert": {"active": True,"owner_id":owner_id}
+                "$setOnInsert": {"active": True, "owner_id": owner_id} # owner_id was missing here
             },
             upsert=True
         )
-
-        user = Users.find_one({"_id": _id}, {"conversation": 1, "_id": 0})
-        return user["conversation"]
+        # Return the updated conversation after adding messages
+        return get_conversation(_id, owner_id)
     except Exception as e:
-        print(f"Error adding messages: {e}")
-        return []
+        print(f"Error adding messages for user {_id}: {e}")
+        # Return existing conversation or empty list on error
+        return get_conversation(_id, owner_id)
 
 def set_user_info(_id,info):
     Users.update_one({"_id":_id},{"$set":info})
@@ -93,7 +102,7 @@ def set_appointment(_id,appointment,owner_id):
     return temp.inserted_id
 
 def send_notification(_id,note,owner_id):
-    notification = {"user_id":_id,"owner_id":owner_id,"note":note,"viewed":False,"created_at":str(datetime.now())}
+    notification = {"user_id":_id,"owner_id":owner_id,"note":note.get("Note"),"viewed":False,"created_at":str(datetime.now()),"details":note}
     profile = actions.get_profile(_id)
     notification["name"] = profile["name"]
     notification["username"] = profile["username"]
@@ -131,11 +140,25 @@ def get_instruction(owner_id):
 def get_active_users(owner_id):
     active_users = Users.find({"active":True,"owner_id":owner_id})
     return active_users
+
 def get_users(owner_id):
     users = Users.find({"owner_id":owner_id})
     if users is None:
         users = []
     return users 
+def get_notifications(_id):
+    n = notifications.find({"owner_id":_id})
+    notis = []
+    for notification in list(n):
+        print(notification.get("_id"))
+        notification["_id"] = str(notification.get("_id"))
+        notis.append(notification)
+    return notis
+def read_notification(_id):
+    obj_id = ObjectId(_id)
+    print(obj_id)
+    notifications.update_one({"_id":obj_id},{"$set":{"viewed":True}})
+
 def delete_customer(_id,owner_id):
     Users.remove({"_id":_id,"owner_id":owner_id})
 
