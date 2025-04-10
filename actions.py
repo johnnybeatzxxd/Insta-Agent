@@ -186,45 +186,31 @@ def get_profile(_id):
         data = response.json()
         return data
 
+def send_post(receiver_id,post_id,owner_id):
+
+    access_token = os.environ.get("long_access_token")
+    url = f"https://graph.instagram.com/v22.0/{owner_id}/messages"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "recipient": {
+            "id": receiver_id
+        },
+        "message": {
+            "attachment": {
+                "type": "MEDIA_SHARE",
+                "payload": {
+                    "id": post_id
+                }
+            }
+        }
+    }
+
+    response = requests.post(url,headers=headers,data=json.dumps(data))
+    print(response.json())
+    
 
 if __name__ == "__main__":
-    # Example usage for testing the splitting and combining
-    test_message = "or through Stripe here https://buy.stripe.com/5kA3e464sghNcz63cm."
-    # test_message = "hey! lash extensions are currently $90 for any set (classic, hybrid, 2-3D, or 4-6D). what day are you thinking of coming in? 🥰"
-
-
-    print(f"Original Message:\n{test_message}\n")
-    print("Processing message...")
-
-    # Step 1: Initial Split
-    initial_chunks = _split_message_into_chunks(test_message)
-
-    print("\nResulting Chunks (Initial Split):")
-    if initial_chunks:
-        for i, chunk in enumerate(initial_chunks):
-            print(f"  Chunk {i+1} (len={len(chunk)}): {chunk}")
-    else:
-        print("  No initial chunks generated.")
-
-    # Step 2: Combine Short Chunks
-    final_chunks = _combine_short_chunks(initial_chunks, SHORT_CHUNK_THRESHOLD)
-
-    print(f"\nResulting Chunks (After Combining Short Ones < {SHORT_CHUNK_THRESHOLD} chars):")
-    if final_chunks:
-        for i, chunk in enumerate(final_chunks):
-            print(f"  Final Chunk {i+1}: {chunk}")
-    else:
-        print("  No final chunks generated.")
-
-    # --- Optional: Simulate Sending ---
-    # print("\n--- Simulating Sending ---")
-    # if final_chunks:
-    #     for i, chunk in enumerate(final_chunks):
-    #         delay_seconds = random.uniform(0.5, 1.5)
-    #         print(f"Pausing for {delay_seconds:.2f} seconds...")
-    #         # time.sleep(delay_seconds) # Uncomment to actually pause
-    #         print(f"Sending final chunk {i+1}: {chunk}")
-    # else:
-    #     print("No chunks to send.")
-    # ----------------------------------
-
+    send_post(1660159627957434,"2243569220713804232",17841433182941465)

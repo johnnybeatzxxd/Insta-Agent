@@ -166,6 +166,24 @@ tools = [
                 "required": ["appointment_id","note"],
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "send_example",
+            "description": "This function allows you to send images of specific services as an example",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "service": {
+                        "type": "string",
+                        "enum": ["classic", "hybrid","mega","training","policy","payment_informations","contact"],
+                        "description": "service you want to send example"
+                    },
+                },
+                "required": ["service"],
+            }
+        }
     }
 ]
 
@@ -265,6 +283,11 @@ class llm:
             schedulista = functions.cancel_appointment(appointment_id)
             notification = database.send_notification(_id,note,owner_id)
             return {"function_response":f"appointment has been cancelled! contact @iamtonybart for refund!","image":None}
+
+        if function_name == "send_example":
+            query = function_args.get("service")
+            result = functions.send_example(query,owner_id)
+            return {"function_response": result,"image":None}
 
     def generate_response(self,_id,messages,owner_id):
         system_message = {"role": "system", "content": self.instruction}
