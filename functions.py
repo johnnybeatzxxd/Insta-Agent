@@ -5,6 +5,14 @@ import calendar
 import database
 import schedulista_api
 
+def send_example(service,owner_id):
+    info = database.get_dataset(owner_id)
+    examples = info.get("examples")
+    result = examples.get(str(service))
+    if examples:
+        return f'{service} example: {result}'
+    return "example not found please check our feed"
+
 def cancel_appointment(appointment_id):
     schedulista_api.cancel_appointment(appointment_id)
 
@@ -210,6 +218,4 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    pass
-    # payload = {'deposit_amount': 25, 'deal_price': 90, 'name': 'Ashley Benson', 'note': 'Hybrid lashes, Ashley Benson, $25 deposit', 'phone_number': '+14155557890', 'booked_datetime': '2025-04-04T09:00:00:00:00:00', 'service': 'Hybrid'}
-    # print(book_appointment(123,payload,456))
+    print(send_example("classic",17841433182941465))

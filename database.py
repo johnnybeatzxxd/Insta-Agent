@@ -190,6 +190,6 @@ class auth:
              }) 
 
 if __name__ == "__main__":
-    pass
-    info = send_notification(1124492214,"hello world",123)
-    print(info)
+    with open("info.json","r") as info:
+        info = json.load(info)
+        set_dataset(17841433182941465,info)
