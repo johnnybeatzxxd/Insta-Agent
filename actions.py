@@ -22,15 +22,20 @@ def _preprocess_markdown_links(text):
     return processed_text
 
 def _split_message_into_chunks(message_text):
-    """Helper function to split text based on sentence terminators (unless followed by emoji) and newlines."""
+    """Helper function to split text based on sentence terminators or newlines,
+    keeping punctuation attached to subsequent emojis, even with spaces."""
     # Preprocess to handle Markdown links first
     processed_text = _preprocess_markdown_links(message_text)
 
-    # Regex revised to prioritize URLs and handle sentence endings more carefully.
+    # Regex revised to handle spaces between punctuation and emojis.
     # 1. Match URLs: (?:https?://|ftps?://|www\.)[^\s]+
-    # 2. Match content up to a sentence end [.!?] followed by whitespace, emoji, or end-of-string ($), OR a newline (\n). Uses non-greedy .+?
+    # 2. OR Match content .+? ending in one of:
+    #    a. Punctuation [.!?] followed by (whitespace NOT followed by emoji `\s+(?![\U...])`) OR end-of-string `$`.
+    #    b. Punctuation [.!?] followed by optional spaces `\s*` and emoji(s) `[\U...]`, which are then followed by whitespace `\s+` or end-of-string `$`.
+    #    c. A newline (\n).
+    #    Uses non-greedy .+? which consumes up to and including the matched ending.
     # 3. Fallback: Match any remaining characters using .+
-    pattern = r'(?:https?://|ftps?://|www\.)[^\s]+|.+?(?:[.!?](?=\s+|[\U0001F300-\U0001FADF]|$)|\n)|.+'
+    pattern = r'(?:https?://|ftps?://|www\.)[^\s]+|.+?(?:[.!?](?=\s+(?![\U0001F300-\U0001FADF])|$)|[.!?]\s*[\U0001F300-\U0001FADF]+(?=\s+|$)|\n)|.+'
 
 
     # Find all matches based on the pattern using the processed text
@@ -213,4 +218,24 @@ def send_post(receiver_id,post_id,owner_id):
     
 
 if __name__ == "__main__":
-    send_post(1660159627957434,"2243569220713804232",17841433182941465)
+    # Get message input from the user
+    message_to_test = "Classic, Hybrid, Mega Volume, or something else? 💀"
+
+    # 1. Preprocess markdown links (as done in send_text_message)
+    processed_message = _preprocess_markdown_links(message_to_test)
+
+    # 2. Split the message into initial chunks
+    initial_chunks = _split_message_into_chunks(processed_message)
+    print("\n--- Initial Chunks ---")
+    for i, chunk in enumerate(initial_chunks):
+        print(f"Chunk {i+1}: {chunk}")
+
+    # 3. Combine short chunks
+    final_chunks = _combine_short_chunks(initial_chunks, SHORT_CHUNK_THRESHOLD)
+    print("\n--- Final Chunks (after combining short ones) ---")
+    if final_chunks:
+        print("The following message chunks would be sent:")
+        for i, chunk in enumerate(final_chunks):
+            print(f"Message {i+1}: {chunk}")
+    else:
+        print("No message chunks would be sent.")
