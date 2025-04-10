@@ -302,6 +302,7 @@ class llm:
             try:
                 response = self.client.chat.completions.create(
                     model="gpt-4o",
+                    temperature=0.2,
                     messages=msg,
                     tools=self.tools,
                     tool_choice="auto"
