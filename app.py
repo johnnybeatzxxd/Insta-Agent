@@ -218,7 +218,7 @@ def data():
         owner_id = user["_id"]
         body = request.get_json()
         business_data = body.get("business_data")
-        database.set_dataset(owner_id,business_data)
+        database.set_dataset(int(owner_id),business_data)
         return jsonify({'message': "Business data saved!"}), 200
 
 @app.route('/get_notifications',methods=['GET'])
