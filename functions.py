@@ -45,8 +45,14 @@ def book_appointment(_id,args,owner_id):
                 raise client["errors"][0]
             client_id = client["id"]
         except Exception as error:
-            print(error)
-            return str(error)
+            try:
+                client = schedulista_api.create_client(name,"")
+                if client.get("errors"):
+                    raise client["errors"][0]
+                client_id = client["id"]
+            except Exception as error:
+                print(error)
+                return "The phone number format is invalid please correct it and try again!"
 
     args["client_id"] = client_id
     # save into the database 
