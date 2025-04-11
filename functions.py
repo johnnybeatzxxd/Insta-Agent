@@ -4,6 +4,9 @@ from datetime import datetime, date, timedelta
 import calendar
 import database
 import schedulista_api
+import pytz
+
+TARGET_TZ = pytz.timezone('America/New_York')
 
 def send_example(service,owner_id):
     info = database.get_dataset(owner_id)
@@ -84,7 +87,7 @@ def get_information(key, owner_id):
 
 def get_next_weekday_date(weekday_name, reference_date=None):
     if reference_date is None:
-        reference_date = date.today()  
+        reference_date = datetime.now(tz=TARGET_TZ).date()
 
     weekday_name = weekday_name.lower()
     if len(weekday_name) == 3:
@@ -111,8 +114,9 @@ def get_next_weekday_date(weekday_name, reference_date=None):
 
 def availablity(date_input):
     """
-    Checks availability for a given date or weekday. Supports "today", weekday names,
-    "next [weekday]", and YYYY-MM-DD date formats.
+    Checks availability for a given date or weekday using the target timezone.
+    Supports "today", "tomorrow", weekday names, "next [weekday]",
+    and YYYY-MM-DD date formats.
 
     Args:
         date_input: The date or weekday to check.
@@ -120,88 +124,119 @@ def availablity(date_input):
     Returns:
         The availability data from the API, or an error message.
     """
-    # Process the date input
+    today_in_tz = datetime.now(tz=TARGET_TZ).date()
     general = False
-    if date_input.lower() == "general":
+    resolved_date = None
+
+    date_input_lower = date_input.lower()
+
+    if date_input_lower == "general":
         general = True
-        resolved_date = date.today()  
+        resolved_date = today_in_tz
         date_input = "today"
-    if date_input.lower() == "today":
-        resolved_date = date.today()
-    elif date_input.lower() == "tomorrow":
-        resolved_date = date.today() + timedelta(days=1)
-    elif date_input.lower() in [day.lower() for day in calendar.day_name] + [day.lower() for day in calendar.day_abbr]:
-        resolved_date = get_next_weekday_date(date_input)
-    elif date_input.lower().startswith("next "):
+    elif date_input_lower == "today":
+        resolved_date = today_in_tz
+    elif date_input_lower == "tomorrow":
+        resolved_date = today_in_tz + timedelta(days=1)
+    elif date_input_lower in [day.lower() for day in calendar.day_name] + [day.lower() for day in calendar.day_abbr]:
+        resolved_date = get_next_weekday_date(date_input_lower, reference_date=today_in_tz)
+    elif date_input_lower.startswith("next "):
         try:
-            weekday = date_input.split(" ")[1]
-            resolved_date = get_next_weekday_date(weekday)
+            weekday = date_input_lower.split(" ")[1]
+            resolved_date = get_next_weekday_date(weekday, reference_date=today_in_tz)
+            if not resolved_date:
+                return f"Invalid weekday provided after 'next': {weekday}"
         except IndexError:
             return "Please provide a day after 'next' keyword"
     else:
         try:
             resolved_date = datetime.strptime(date_input, "%Y-%m-%d").date()
         except ValueError:
-            return "Invalid date format. Please use YYYY-MM-DD or a weekday name."
+            return "Invalid date format. Please use YYYY-MM-DD, 'today', 'tomorrow', or a weekday name (e.g., 'Monday', 'next Tuesday')."
 
     if not resolved_date:
         general = True
-        resolved_date = date.today()
-        date_input = "today"
+        resolved_date = today_in_tz
 
-    # Convert date to required format (YYYYMMDD)
     formatted_date = resolved_date.strftime("%Y%m%d")
 
-    url = f"https://www.schedulista.com/schedule/bartaesthetics/available_times_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592411&date={formatted_date}&time_zone=Eastern+Time+(US+%26+Canada)"
+    time_zone_url_param = "Eastern+Time+(US+%26+Canada)"
 
     if general:
-        formatted_date = formatted_date[:-2] + "01"
-        url = f"https://www.schedulista.com/schedule/bartaesthetics/available_days_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592366&start_date={formatted_date}&time_zone=Eastern+Time+(US+%26+Canada)&scan_to_first_available=true"
+        first_of_month_date = resolved_date.replace(day=1)
+        formatted_start_date = first_of_month_date.strftime("%Y%m%d")
+        url = f"https://www.schedulista.com/schedule/bartaesthetics/available_days_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592366&start_date={formatted_start_date}&time_zone={time_zone_url_param}&scan_to_first_available=true"
+    else:
+        url = f"https://www.schedulista.com/schedule/bartaesthetics/available_times_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592411&date={formatted_date}&time_zone={time_zone_url_param}"
 
     try:
         response = requests.get(url)
         response.raise_for_status()
         
-        # Parse the original JSON response
         parsed_data = json.loads(response.text)
-        
-        # Process dates into human-readable format
+
         processed = {
-            "today": {
-                "date": date.today().strftime("%Y-%m-%d"),
-                "day": date.today().strftime("%A")
+            "query_details": {
+                "input": date_input,
+                "resolved_date": resolved_date.strftime("%Y-%m-%d"),
+                "resolved_day": resolved_date.strftime("%A"),
+                "timezone": str(TARGET_TZ),
+                "type": "general_days" if general else "specific_day_times"
+            },
+             "today": {
+                "date": today_in_tz.strftime("%Y-%m-%d"),
+                "day": today_in_tz.strftime("%A")
             }
         }
-        
-        # Handle different response formats based on query type
+
         if general:
-            # For "general" query - has available_days dictionary
-            processed["available_days"] = [
-                {
-                    "date": datetime.strptime(d, "%Y%m%d").strftime("%Y-%m-%d"),
-                    "day": datetime.strptime(d, "%Y%m%d").strftime("%A")
-                } for d in parsed_data.get("available_days", {}).keys()
-            ]
-            
+            processed["available_days"] = []
+            if "available_days" in parsed_data and isinstance(parsed_data["available_days"], dict):
+                 processed["available_days"] = [
+                    {
+                        "date": datetime.strptime(d, "%Y%m%d").strftime("%Y-%m-%d"),
+                        "day": datetime.strptime(d, "%Y%m%d").strftime("%A")
+                    } for d in sorted(parsed_data["available_days"].keys())
+                ]
+
             if parsed_data.get("first_available_day"):
+                fad_date = datetime.strptime(parsed_data["first_available_day"], "%Y%m%d")
                 processed["first_available_day"] = {
-                    "date": datetime.strptime(parsed_data["first_available_day"], "%Y%m%d").strftime("%Y-%m-%d"),
-                    "day": datetime.strptime(parsed_data["first_available_day"], "%Y%m%d").strftime("%A")
+                    "date": fad_date.strftime("%Y-%m-%d"),
+                    "day": fad_date.strftime("%A")
                 }
             else:
                 processed["first_available_day"] = None
         else:
-            # For specific day query - has a list of available times
+            processed["available_times"] = []
             if isinstance(parsed_data, list):
-                processed["available_times"] = parsed_data
+                 for slot in parsed_data:
+                    try:
+                        start_dt_aware = datetime.fromisoformat(slot["start_time"])
+                        start_dt_local = start_dt_aware.astimezone(TARGET_TZ)
+                        formatted_time = start_dt_local.strftime("%I:%M %p %Z")
+                        processed["available_times"].append({
+                             "start_time_iso": slot["start_time"],
+                             "start_time_formatted": formatted_time,
+                        })
+                    except (ValueError, KeyError):
+                        processed["available_times"].append({
+                            "error": "Could not parse time slot",
+                            "raw_slot": slot
+                        })
+
             else:
-                # Handle unexpected response format
+                processed["error"] = "Unexpected response format for available times."
                 processed["raw_response"] = parsed_data
-        
+
         return json.dumps(processed, indent=2)
         
     except requests.exceptions.RequestException as e:
-        return f"Error fetching availability: {e}"
+        return json.dumps({"error": f"Error fetching availability: {e}", "url_requested": url}, indent=2)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "Error decoding availability response from Schedulista.", "url_requested": url}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": f"An unexpected error occurred: {e}", "url_requested": url}, indent=2)
 
 def is_time_available(appointment_time, schedule):
     for slot in schedule.get("available_times"):

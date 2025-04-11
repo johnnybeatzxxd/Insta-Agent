@@ -10,6 +10,9 @@ import random
 from collections import defaultdict
 import threading
 import datetime
+import pytz
+
+TARGET_TZ = pytz.timezone('America/New_York')
 
 load_dotenv(override=True)
 
@@ -21,20 +24,20 @@ batch_timers = {}
 batch_locks = defaultdict(threading.Lock)
 BATCH_WINDOW = 5  # seconds to wait for related messages
 
-def process_message_batch(sender_id,owner_id):
+def process_message_batch(sender_id, owner_id):
     """Process a complete batch of messages from a sender"""
     with batch_locks[sender_id]:
         if sender_id in message_batches:
             # Clear the batch (messages already saved individually)
             message_batches[sender_id] = []
             
-            if database.check_user_active(sender_id,owner_id):
-                latest_conversation = database.get_conversation(sender_id,owner_id)
+            if database.check_user_active(sender_id, owner_id):
+                latest_conversation = database.get_conversation(sender_id, owner_id)
                 # print("Processing batched conversation:", latest_conversation)
                 # Process with AI
                 llm = ai.llm(owner_id)
                 # process_query now returns all messages added by the AI this turn
-                ai_generated_messages = llm.process_query(sender_id,latest_conversation,owner_id)
+                ai_generated_messages = llm.process_query(sender_id, latest_conversation, owner_id)
                 print(f"AI generated messages: {ai_generated_messages}")
                 
                 # Save all AI-generated messages (assistant, tool_calls, tool responses) to DB
@@ -64,7 +67,7 @@ def process_messages(request):
     if sender == str(owner_id):  # The owner sent a message
         print(f"Message sent to {receiver}")
         msg = message_obj["message"]["text"]
-        today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        today = datetime.datetime.now(tz=TARGET_TZ).strftime("%Y-%m-%d %H:%M:%S %Z")
         # msg = f"{today}\n{msg}"
         message = {
             "role": "assistant",
@@ -89,23 +92,24 @@ def process_messages(request):
             # Handle text content
             if "text" in message:
                 msg = message["text"]
-                today = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                msg = f"{today}\n{msg}"
-                user_message["content"] = msg
+                # Timestamp using target timezone
+                today = datetime.datetime.now(tz=TARGET_TZ).strftime("%Y-%m-%d %H:%M:%S %Z") # Added %Z
+                msg_with_timestamp = f"{today}\n{msg}"
+                user_message["content"] = msg_with_timestamp # Store timestamped message
             
             # Handle image attachments
             attachments = message.get("attachments", [])
             if attachments:
-                user_message["content"] = []  # Initialize as list for multimodal content
                 if user_message["content"] is None:
-                    user_message["content"] = []
-                
-                # Add text if exists
-                if "text" in message:
-                    user_message["content"].append({
-                        "type": "text",
-                        "text": msg
-                    })
+                     # If no text, create list; otherwise, convert text content to list item
+                     if "text" not in message:
+                         user_message["content"] = []
+                     else:
+                          # Keep existing timestamped text message
+                         user_message["content"] = [{ "type": "text", "text": user_message["content"] }]
+                elif not isinstance(user_message["content"], list):
+                     # Convert existing text content into the list structure
+                     user_message["content"] = [{ "type": "text", "text": user_message["content"] }]
                 
                 # Add images
                 for attachment in attachments:
@@ -118,6 +122,7 @@ def process_messages(request):
                         })
             
             if user_message["content"]:  # Only save if we have content
+                # Pass owner_id to add_message
                 database.add_message(sender, [user_message], owner_id)
             
             # If this is the first message in the batch, start a timer
@@ -125,11 +130,11 @@ def process_messages(request):
                 # Timer already running, don't need to start a new one
                 pass
             else:
-                # Start a new timer
+                # Pass owner_id to process_message_batch
                 batch_timers[sender] = threading.Timer(
-                    BATCH_WINDOW, 
-                    process_message_batch, 
-                    args=[sender,owner_id]
+                    BATCH_WINDOW,
+                    process_message_batch,
+                    args=[sender, owner_id] # Pass owner_id here
                 )
                 batch_timers[sender].start()
 

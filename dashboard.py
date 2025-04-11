@@ -3,7 +3,9 @@ import actions
 import json
 import os
 from datetime import datetime, timedelta
+import pytz
 
+TARGET_TZ = pytz.timezone('America/New_York')
 cache_expiration_minutes = 10
 
 def is_cache_valid(cache_file):
@@ -16,11 +18,11 @@ def is_cache_valid(cache_file):
             cache_data = json.load(f)
             
         cache_time = datetime.fromisoformat(cache_data["time"])
-        current_time = datetime.now()
+        current_time = datetime.now(tz=TARGET_TZ)
         
         # Check if cache is still valid (less than expiration time)
         return current_time - cache_time < timedelta(minutes=cache_expiration_minutes)
-    except (json.JSONDecodeError, KeyError, ValueError):
+    except (json.JSONDecodeError, KeyError, ValueError, TypeError):
         return False
 
 def transform_conversations(filtered_conversations, owner_id):
@@ -70,6 +72,53 @@ def transform_conversations(filtered_conversations, owner_id):
     
     return conversations
 
+def transform_conversations_for_display(filtered_conversations, owner_id, tz):
+    conversations = []
+    for i, conversation in enumerate(filtered_conversations):
+        if "messages" not in conversation or "data" not in conversation["messages"]:
+            continue
+
+        other_participant = None
+        for participant in conversation["participants"]["data"]:
+            if str(participant["id"]) != str(owner_id):
+                other_participant = participant
+                break
+        if not other_participant:
+            continue
+
+        messages_for_display = []
+        for msg in conversation["messages"]["data"]:
+            # Parse the timestamp (aware due to %z)
+            message_time_aware = datetime.strptime(msg["created_time"], "%Y-%m-%dT%H:%M:%S%z")
+            # Convert to the target display timezone
+            local_message_time = message_time_aware.astimezone(tz)
+            formatted_time = local_message_time.strftime("%I:%M %p") # Format in local time
+
+            messages_for_display.append({
+                "id": len(messages_for_display) + 1,
+                "content": msg.get("message", ""),
+                "isUser": str(msg["from"]["id"]) == str(owner_id),
+                "time": formatted_time
+            })
+
+        # Reverse messages to get the latest first for display logic
+        messages_for_display.reverse()
+        last_message_content = messages_for_display[0]["content"] if messages_for_display else ""
+        last_message_time_formatted = messages_for_display[0]["time"] if messages_for_display else ""
+
+        conversations.append({
+            "id": i + 1,
+            "user": other_participant["username"].title().replace(".", " "),
+            "avatar": "".join([name[0] for name in other_participant["username"].split()[:2]]).upper(),
+            "lastMessage": last_message_content,
+            "time": last_message_time_formatted,
+            "unread": False,
+            # Keep original message structure if needed elsewhere,
+            # or store the display-formatted messages
+            "messages": messages_for_display # Use the timezone-formatted messages
+        })
+    return conversations
+
 def dashboard_stats(owner_id,access_token):
     # Create ID-specific cache filenames
     users_cache_file = f"users_cache_{owner_id}.json"
@@ -86,7 +135,7 @@ def dashboard_stats(owner_id,access_token):
         # Convert MongoDB cursor to list to make it JSON serializable
         users = list(users_cursor)
         users_cache = {
-            "time": datetime.now().isoformat(),
+            "time": datetime.now(tz=TARGET_TZ).isoformat(),
             "users": users
         }
         with open(users_cache_file, "w") as f:
@@ -116,7 +165,7 @@ def dashboard_stats(owner_id,access_token):
         
         # Save the new cache with ID-specific filename
         cache = {
-            "time": datetime.now().isoformat(),
+            "time": datetime.now(tz=TARGET_TZ).isoformat(),
             "conversations": filtered_conversations
         }
         with open(conversations_cache_file, "w") as f:
@@ -139,14 +188,18 @@ def dashboard_stats(owner_id,access_token):
         if "messages" in conversation and "data" in conversation["messages"] and conversation["messages"]["data"]:
             recent_message = conversation["messages"]["data"][0]
             message_time = datetime.strptime(recent_message["created_time"], "%Y-%m-%dT%H:%M:%S%z")
-            current_time = datetime.now(message_time.tzinfo)
+            current_time = datetime.now(tz=TARGET_TZ)
             time_diff = current_time - message_time
             
             # Format last active time
+            local_message_time = message_time.astimezone(TARGET_TZ)
             if time_diff.days > 0:
-                last_active = message_time.strftime("Yesterday, %I:%M %p")
+                if (current_time.date() - local_message_time.date()).days == 1:
+                    last_active = local_message_time.strftime("Yesterday, %I:%M %p %Z")
+                else:
+                    last_active = local_message_time.strftime("%Y-%m-%d, %I:%M %p %Z")
             else:
-                last_active = message_time.strftime("Today, %I:%M %p")
+                last_active = local_message_time.strftime("Today, %I:%M %p %Z")
         else:
             last_active = "N/A"
             
@@ -184,7 +237,7 @@ def dashboard_stats(owner_id,access_token):
         })
 
     # Transform conversations to the new format
-    transformed_conversations = transform_conversations(filtered_conversations, owner_id)
+    transformed_conversations = transform_conversations_for_display(filtered_conversations, owner_id, TARGET_TZ)
     
     # Find owner information from participants
     owner_info = None
@@ -263,7 +316,7 @@ def parse_recent_chats(filtered_conversations, owner_id):
         
         # Calculate time difference
         message_time = datetime.strptime(recent_message["created_time"], "%Y-%m-%dT%H:%M:%S%z")
-        current_time = datetime.now(message_time.tzinfo)
+        current_time = datetime.now(tz=TARGET_TZ)
         time_diff = current_time - message_time
         
         # Format time difference

@@ -6,6 +6,9 @@ from pymongo.synchronous import database
 import actions
 from bson import ObjectId
 from datetime import datetime
+import pytz # Add pytz import
+
+TARGET_TZ = pytz.timezone('America/New_York') # Define target timezone
 
 load_dotenv(override=True)
 
@@ -102,7 +105,15 @@ def set_appointment(_id,appointment,owner_id):
     return temp.inserted_id
 
 def send_notification(_id,note,owner_id):
-    notification = {"user_id":_id,"owner_id":owner_id,"note":note.get("Note"),"viewed":False,"created_at":str(datetime.now()),"details":note}
+    notification = {
+        "user_id":_id,
+        "owner_id":owner_id,
+        "note":note.get("Note"),
+        "viewed":False,
+        # Store timestamp in ISO format with timezone
+        "created_at":datetime.now(tz=TARGET_TZ).isoformat(),
+        "details":note
+        }
     profile = actions.get_profile(_id)
     notification["name"] = profile["name"]
     notification["username"] = profile["username"]
