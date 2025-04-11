@@ -10,7 +10,11 @@ from openai import OpenAI, APIConnectionError
 
 import functions
 load_dotenv(override=True)
-
+ModelName = os.getenv('ModelName')
+Temperature = float(os.environ.get('Temperature'))
+API_KEY = os.getenv("AI_API_KEY")
+print(Temperature)
+print(type(Temperature))
 today = datetime.date.today()
 year = today.year
 month = today.month
@@ -194,7 +198,7 @@ class llm:
         self.tools = tools
         self.instruction = database.get_instruction(owner_id)
         self.client = OpenAI(
-            api_key=os.environ.get('GptApiKey'),
+            api_key=API_KEY
             # base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
         )
 
@@ -301,8 +305,8 @@ class llm:
         for attempt in range(max_retries):
             try:
                 response = self.client.chat.completions.create(
-                    model="gpt-4o",
-                    temperature=0.2,
+                    model=ModelName,
+                    temperature=Temperature,
                     messages=msg,
                     tools=self.tools,
                     tool_choice="auto"
