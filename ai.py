@@ -13,8 +13,7 @@ load_dotenv(override=True)
 ModelName = os.getenv('ModelName')
 Temperature = float(os.environ.get('Temperature'))
 API_KEY = os.getenv("AI_API_KEY")
-print(Temperature)
-print(type(Temperature))
+ModelUrl = os.getenv("ModelUrl")
 today = datetime.date.today()
 year = today.year
 month = today.month
@@ -198,8 +197,8 @@ class llm:
         self.tools = tools
         self.instruction = database.get_instruction(owner_id)
         self.client = OpenAI(
-            api_key=API_KEY
-            # base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            api_key=API_KEY,
+            base_url=ModelUrl
         )
 
     def function_call(self,response,_id,owner_id):
