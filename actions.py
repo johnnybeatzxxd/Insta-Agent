@@ -219,7 +219,7 @@ def send_post(receiver_id,post_id,owner_id):
 
 if __name__ == "__main__":
     # Get message input from the user
-    message_to_test = "Classic, Hybrid, Mega Volume, or something else? 💀"
+    message_to_test = "Hi dear 🤍 Would you like to book lashes or brows today? ✨"
 
     # 1. Preprocess markdown links (as done in send_text_message)
     processed_message = _preprocess_markdown_links(message_to_test)

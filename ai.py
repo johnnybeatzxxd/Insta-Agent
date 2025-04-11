@@ -48,7 +48,7 @@ tools = [
                 "properties": {
                     "date": {
                         "type": "string",
-                        "description": "The date for checking availability. Can be a specific date in YYYY-MM-DD format or a weekday name (e.g., 'Monday', 'next Friday', 'Tue','today'.'tomorrow','general').'examples': ['2025-03-10', 'Monday', 'next wednesday','today','tomorrow','general'] you can also use the 'general' this will return available dates with in current month you should use this often!",
+                        "description": "The date for checking availability. Can be a specific date in YYYY-MM-DD format or a weekday name (e.g., 'Monday', 'next Friday', 'Tue','today'.'tomorrow','general').'examples': ['2025-03-10', 'Monday', 'next wednesday','today','tomorrow','general'] you can use 'general' for next week it will return available dates with in current month you should use this often!",
                     },
                 },
                 "required": ["date"],
