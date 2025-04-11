@@ -27,15 +27,18 @@ def _split_message_into_chunks(message_text):
     # Preprocess to handle Markdown links first
     processed_text = _preprocess_markdown_links(message_text)
 
-    # Regex revised to handle spaces between punctuation and emojis.
+    # Define a more comprehensive emoji character class including multiple Unicode ranges
+    EMOJI_CLASS = r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F1E6-\U0001F1FF\U00002700-\U000027BF\U0001F900-\U0001F9FF\U0001FA70-\U0001FAFF\U00002600-\U000026FF]'
+
+    # Regex revised to handle spaces between punctuation and emojis, using the broader EMOJI_CLASS.
     # 1. Match URLs: (?:https?://|ftps?://|www\.)[^\s]+
     # 2. OR Match content .+? ending in one of:
-    #    a. Punctuation [.!?] followed by (whitespace NOT followed by emoji `\s+(?![\U...])`) OR end-of-string `$`.
-    #    b. Punctuation [.!?] followed by optional spaces `\s*` and emoji(s) `[\U...]`, which are then followed by whitespace `\s+` or end-of-string `$`.
+    #    a. Punctuation [.!?] followed by (whitespace NOT followed by emoji `\s+(?!{EMOJI_CLASS})`) OR end-of-string `$`.
+    #    b. Punctuation [.!?] followed by optional spaces `\s*` and emoji(s) `{EMOJI_CLASS}+`, which are then followed by whitespace `\s+` or end-of-string `$`.
     #    c. A newline (\n).
     #    Uses non-greedy .+? which consumes up to and including the matched ending.
     # 3. Fallback: Match any remaining characters using .+
-    pattern = r'(?:https?://|ftps?://|www\.)[^\s]+|.+?(?:[.!?](?=\s+(?![\U0001F300-\U0001FADF])|$)|[.!?]\s*[\U0001F300-\U0001FADF]+(?=\s+|$)|\n)|.+'
+    pattern = rf'(?:https?://|ftps?://|www\.)[^\s]+|.+?(?:[.!?](?=\s+(?!{EMOJI_CLASS})|$)|[.!?]\s*{EMOJI_CLASS}+(?=\s+|$)|\n)|.+'
 
 
     # Find all matches based on the pattern using the processed text
