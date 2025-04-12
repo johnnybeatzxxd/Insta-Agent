@@ -5,8 +5,37 @@ import calendar
 import database
 import schedulista_api
 import pytz
+import base64
+import io
 
 TARGET_TZ = pytz.timezone('America/New_York')
+
+def url_to_base64(image_url):
+    """Fetches an image from a URL and returns its base64 representation."""
+    try:
+        response = requests.get(image_url, stream=True)
+        response.raise_for_status() # Raise an exception for bad status codes
+
+        # Check content type to make sure it's an image
+        content_type = response.headers.get('content-type')
+        if not content_type or not content_type.lower().startswith('image/'):
+             print(f"Warning: URL did not point to an image. Content-Type: {content_type}")
+             return None # Or raise an error
+
+        image_bytes = io.BytesIO(response.content).read()
+        base64_bytes = base64.b64encode(image_bytes)
+        base64_string = base64_bytes.decode('utf-8')
+
+        # Optionally, prepend the data URI scheme if needed by the receiver
+        # e.g., return f"data:{content_type};base64,{base64_string}"
+        return base64_string
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching image from URL {image_url}: {e}")
+        return None
+    except Exception as e:
+        print(f"Error encoding image from URL {image_url} to base64: {e}")
+        return None
 
 def send_example(service,owner_id):
     info = database.get_dataset(owner_id)
@@ -79,11 +108,41 @@ def book_appointment(_id,args,owner_id):
     database.set_appointment(_id,args,owner_id)
     return f"Appointment has been booked. Appointment ID: {appointment_id}"
 
-def get_information(key, owner_id):
+def get_information(key,user_id,owner_id):
     info = database.get_dataset(owner_id)
     if info is None:
         return "data not found:"
-    return info[key]
+    
+    # Use .get() for safer access
+    result = info.get(key)
+    
+    if result is None:
+        # Return a more specific message if the key is missing
+        return f"Information for '{key}' not found."
+
+    # Check if the key is 'services' and the result is a list
+    if key == "services" and isinstance(result, list):
+        # *** Add your condition check here ***
+        # For example: if owner_id == 'some_specific_id':
+        # Or simply: if True: (to always apply the change for services)
+        
+        appointments = database.get_user_appointments(user_id,owner_id)
+        
+        if appointments == []:
+            print("User never booked before!")
+            modified_services = []
+            for service in result:
+                # Make a copy to avoid modifying the original dict if it's shared
+                modified_service = service.copy()
+                name = modified_service.get("name", "")
+                # Check if 'Eyelash Extensions' is in the name but 'Mega Volume' is not
+                if "Eyelash Extensions" in name and "Mega Volume" not in name:
+                    modified_service["price"] = 90  # Update the price
+                modified_services.append(modified_service)
+            return modified_services # Return the modified list
+
+    # Return the original result if key is not 'services' or condition not met
+    return result
 
 def get_next_weekday_date(weekday_name, reference_date=None):
     if reference_date is None:
