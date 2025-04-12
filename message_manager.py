@@ -181,17 +181,10 @@ def process_messages(request):
             attachments = message.get("attachments", [])
             for attachment in attachments:
                 if attachment["type"] == "image":
-                    image_url = attachment["payload"]["url"]
-                    base64_string = functions.url_to_base64(image_url)
-                    if base64_string:
-                        # Store as base64 string instead of URL
-                        msg_content_parts.append({
-                            "type": "image_url", # Keep type as image_url for potential compatibility
-                            "image_url": {"url": base64_string} # Store base64 here
-                        })
-                    else:
-                        print(f"Failed to convert image URL to base64: {image_url}")
-
+                    msg_content_parts.append({
+                        "type": "image_url",
+                        "image_url": {"url": attachment["payload"]["url"]}
+                    })
 
             # Assign content based on parts
             if len(msg_content_parts) == 1 and msg_content_parts[0]["type"] == "text":

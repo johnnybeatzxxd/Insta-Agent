@@ -14,20 +14,17 @@ def url_to_base64(image_url):
     """Fetches an image from a URL and returns its base64 representation."""
     try:
         response = requests.get(image_url, stream=True)
-        response.raise_for_status() # Raise an exception for bad status codes
+        response.raise_for_status()
 
-        # Check content type to make sure it's an image
         content_type = response.headers.get('content-type')
         if not content_type or not content_type.lower().startswith('image/'):
              print(f"Warning: URL did not point to an image. Content-Type: {content_type}")
-             return None # Or raise an error
+             return None
 
         image_bytes = io.BytesIO(response.content).read()
         base64_bytes = base64.b64encode(image_bytes)
         base64_string = base64_bytes.decode('utf-8')
 
-        # Optionally, prepend the data URI scheme if needed by the receiver
-        # e.g., return f"data:{content_type};base64,{base64_string}"
         return base64_string
 
     except requests.exceptions.RequestException as e:

@@ -296,8 +296,6 @@ class llm:
         system_message = {"role": "system", "content": self.instruction}
         msg = messages.copy()
         msg.insert(0, system_message)
-        print(json.dumps(msg, indent=4))
-        
         max_retries = 3
         retry_delay = 3 # seconds
 
