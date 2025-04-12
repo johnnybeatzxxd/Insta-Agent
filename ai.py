@@ -6,14 +6,19 @@ import time
 import os
 from dotenv import load_dotenv
 import traceback
-from openai import OpenAI, APIConnectionError
+# Remove OpenAI import if present
+# from openai import OpenAI, APIConnectionError # Assuming this or similar was used before
+import anthropic # Import Anthropic SDK
+
+# Import SimpleNamespace for the adapter
+from types import SimpleNamespace 
 
 import functions
 load_dotenv(override=True)
 ModelName = os.getenv('ModelName')
 Temperature = float(os.environ.get('Temperature'))
 API_KEY = os.getenv("AI_API_KEY")
-ModelUrl = os.getenv("ModelUrl")
+# ModelUrl = os.getenv("ModelUrl") # Not typically used with Anthropic SDK client
 today = datetime.date.today()
 year = today.year
 month = today.month
@@ -21,11 +26,9 @@ day = today.day
 
 tools = [
     {
-        "type": "function",
-        "function": {
             "name": "get_information",
             "description": "this function gives any information you need to answer users questions.",
-            "parameters": {
+        "input_schema": {
                 "type": "object",
                 "properties": {
                     "info": {
@@ -34,16 +37,13 @@ tools = [
                         "description": 'you specify what information you want to get. you must choose one of this ["businessDescription", "booking","services","training","policy","payment_informations","contact"] use businessDescription for general info.'
                     },
                 },
-                "required": ["info"],
-            }
+            "required": ["info"]
         }
     },
     {
-        "type": "function",
-        "function": {
             "name": "check_availablity",
             "description": "This function lets you check availability within a specified date. The date can be provided as a specific date (YYYY-MM-DD) or as a weekday name (e.g., 'Monday', 'next Tuesday'). If a weekday name is provided, it will be interpreted as the next occurrence of that weekday.",
-            "parameters": {
+        "input_schema": {
                 "type": "object",
                 "properties": {
                     "date": {
@@ -51,16 +51,13 @@ tools = [
                         "description": "The date for checking availability. Can be a specific date in YYYY-MM-DD format or a weekday name (e.g., 'Monday', 'next Friday', 'Tue','today'.'tomorrow','general').'examples': ['2025-03-10', 'Monday', 'next wednesday','today','tomorrow','general'] you can use 'general' for next week it will return available dates with in current month you should use this often!",
                     },
                 },
-                "required": ["date"],
-            }
+            "required": ["date"]
         }
     },
     {
-        "type": "function",
-        "function": {
             "name": "book_appointment",
             "description": "This function lets you book an appointment for the user",
-            "parameters": {
+        "input_schema": {
                 "type": "object",
                 "properties": {
                     "service": {
@@ -92,32 +89,26 @@ tools = [
                         "description": "discription about the appointment. should include service name,user name, deposit_amount,deal_price",
                     }
                 },
-                "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name", "phone_number","note"],
-            }
+            "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name", "phone_number","note"]
         }
     },
     {
-        "type": "function",
-        "function": {
             "name": "get_user_appointments",
             "description": "This function returns list of user appointments. phone_number is not required the system knows the user",
-            "parameters": {
+        "input_schema": {
                 "type": "object",
                 "properties": {
                     "phone_number": {
                         "type": "string",
                         "description": "phone_number is not required to call this function"
-                    },
                 },
             }
         }
     },
     {
-        "type": "function",
-        "function": {
             "name": "reschedule_appointment",
             "description": "This function lets you reschedule appointment. it takes appointment_id of the appointment and date time. dont not ask the user for an id you should call get_user_appointments function first. availablity must be checked before calling this function",
-            "parameters": {
+        "input_schema": {
                 "type": "object",
                 "properties": {
                     "appointment_id": {
@@ -141,16 +132,13 @@ tools = [
                         "description": "discription about the client and rescheduled appointment include user info like name, phone number and service name"
                     },
                 },
-                "required": ["appointment_id","client_id","date_time","note"],
-            }
+            "required": ["appointment_id","client_id","date_time","note"]
         }
     },
     {
-        "type": "function",
-        "function": {
             "name": "cancel_appointment",
             "description": "This function lets you cancel an appointment",
-            "parameters": {
+        "input_schema": {
                 "type": "object",
                 "properties": {
                     "appointment_id": {
@@ -166,16 +154,13 @@ tools = [
                         "description": "cancelled date"
                     },
                 },
-                "required": ["appointment_id","note"],
-            }
+            "required": ["appointment_id","note"]
         }
     },
     {
-        "type": "function",
-        "function": {
-            "name": "send_example",
-            "description": "This function allows you to send images of specific services as an example",
-            "parameters": {
+            "name": "get_examples",
+            "description": "This function allows you to get images of specific services as an example so you can sent the link to the customers",
+        "input_schema": {
                 "type": "object",
                 "properties": {
                     "service": {
@@ -184,8 +169,7 @@ tools = [
                         "description": "service you want to send example"
                     },
                 },
-                "required": ["service"],
-            }
+            "required": ["service"]
         }
     }
 ]
@@ -196,11 +180,12 @@ class llm:
         self.responseType = "text"
         self.tools = tools
         self.instruction = database.get_instruction(owner_id)
-        self.client = OpenAI(
-            api_key=API_KEY,
-            base_url=ModelUrl
+        # Initialize Anthropic client
+        self.client = anthropic.Anthropic(
+            api_key=API_KEY, # Uses the existing environment variable
         )
 
+    # DO NOT TOUCH this function per user request
     def function_call(self,response,_id,owner_id):
         function_name = response.function.name
         function_args = json.loads(response.function.arguments)
@@ -287,86 +272,128 @@ class llm:
             notification = database.send_notification(_id,note,owner_id)
             return {"function_response":f"appointment has been cancelled! contact @iamtonybart for refund!","image":None}
 
-        if function_name == "send_example":
+        if function_name == "get_examples":
             query = function_args.get("service")
             result = functions.send_example(query,owner_id)
-            return {"function_response": result,"image":None}
+            return {"function_response": f"send the user one of those link: {result}","image":None}
 
     def generate_response(self,_id,messages,owner_id):
-        system_message = {"role": "system", "content": self.instruction}
-        msg = messages.copy()
-        msg.insert(0, system_message)
         max_retries = 3
         retry_delay = 3 # seconds
 
         for attempt in range(max_retries):
             try:
-                response = self.client.chat.completions.create(
+                # Use Anthropic's client.messages.create
+                response = self.client.messages.create(
                     model=ModelName,
+                    max_tokens=1024, 
                     temperature=Temperature,
-                    messages=msg,
+                    system=self.instruction, 
+                    messages=messages, 
                     tools=self.tools,
-                    tool_choice="auto"
+                    tool_choice={"type": "auto"} 
                 )
-                # print("response:",response)
+                # print("Anthropic response:", response) 
                 return response # Success, return the response
-            except APIConnectionError as e:
-                print(f"Attempt {attempt + 1} failed with connection error: {e}")
+            except Exception as e: 
+                print(f"Attempt {attempt + 1} failed with error during Anthropic API call: {e}")
                 if attempt < max_retries - 1:
                     print(f"Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                 else:
-                    print("Max retries reached. Raising the connection error.")
+                    print("Max retries reached. Raising the error.")
+                    traceback.print_exc() # Print traceback for debugging the final error
                     raise # Re-raise the exception after the last attempt
-            except Exception as e:
-                # Catch any other exceptions
-                print(f"Error generating response: {e}")
-                raise # Re-raise other exceptions immediately
 
     def process_query(self,_id,messages,owner_id):
-        # Keep track of messages added during this turn (assistant + tool responses)
         new_messages_for_db = [] 
-        
-        # Make a copy to avoid modifying the original list passed in, 
-        # unless we intend for the caller to see the full internal state.
         current_conversation = messages.copy()
         
         while True:
+            print(f"Calling Anthropic API for {_id}. Conversation length: {len(current_conversation)}")
             response = self.generate_response(_id, current_conversation, owner_id)
-            response_message = response.choices[0].message
+
+            # --- Construct Assistant Message ---
+            # Start with role, get text content later
+            assistant_message_content = []
+            stop_reason = response.stop_reason
             
-            # Add the raw assistant message (could have content or tool_calls)
+            # Extract text content if present
+            text_content = "".join([block.text for block in response.content if block.type == 'text'])
+            if text_content:
+                assistant_message_content.append({"type": "text", "text": text_content})
+
+            # Store the full assistant message structure (including potential tool_use later)
             assistant_msg_to_save = {
                 "role": "assistant",
-                "content": response_message.content,
-                # Ensure tool_calls are serializable if they exist
-                "tool_calls": [tc.model_dump() for tc in response_message.tool_calls] if response_message.tool_calls else None
+                "content": assistant_message_content # Start with text, add tool_use if needed
             }
-            # Filter out None values for cleaner storage
-            assistant_msg_to_save = {k: v for k, v in assistant_msg_to_save.items() if v is not None}
             
-            current_conversation.append(assistant_msg_to_save)
-            new_messages_for_db.append(assistant_msg_to_save)
+            # --- Check for Tool Use ---
+            tool_use_blocks = [block for block in response.content if block.type == 'tool_use']
 
-            if response_message.tool_calls:
-                for tool_call in response_message.tool_calls:
-                    function_response_data = self.function_call(tool_call, _id, owner_id)
-                    function_response_content = function_response_data["function_response"]
-                    
-                    tool_response_msg = {
-                        "role": "tool",
-                        "content": function_response_content,
-                        "tool_call_id": tool_call.id
-                    }
-                    current_conversation.append(tool_response_msg)
-                    new_messages_for_db.append(tool_response_msg)
-                    
-                    # Note: We don't add the tool response to final_response_content
-                    # as it's not meant for the end user directly.
+            if not tool_use_blocks:
+                 # If no tool use, just save the text response and finish
+                 print(f"Anthropic response for {_id}: Text only.")
+                 current_conversation.append(assistant_msg_to_save) # Add to temporary conversation state
+                 new_messages_for_db.append(assistant_msg_to_save) # Add to messages to be saved
+                 break # Exit the loop, final response generated
             else:
-                # No more tool calls, this loop iteration is the end.
-                break
+                # --- Handle Tool Use ---
+                print(f"Anthropic response for {_id}: Tool use required ({len(tool_use_blocks)} tools).")
+                # Add the raw tool_use blocks to the assistant message content
+                for tool_use in tool_use_blocks:
+                     assistant_message_content.append({
+                         "type": "tool_use",
+                         "id": tool_use.id,
+                         "name": tool_use.name,
+                         "input": tool_use.input
+                     })
                 
-        # Return the list of messages added during this processing turn
+                current_conversation.append(assistant_msg_to_save) # Add assistant msg with tool_use
+                new_messages_for_db.append(assistant_msg_to_save) # Save assistant msg with tool_use
+
+                # --- Prepare Tool Results ---
+                tool_results_content = []
+                for tool_use in tool_use_blocks:
+                    # Create the adapter object to mimic the old structure for function_call
+                    # The arguments need to be a JSON string for the existing function_call
+                    shim_arguments_json = json.dumps(tool_use.input)
+                    adapter = SimpleNamespace(
+                        function=SimpleNamespace(
+                            name=tool_use.name,
+                            arguments=shim_arguments_json
+                        )
+                    )
+                    
+                    print(f"Calling function: {tool_use.name} with input: {tool_use.input}")
+                    # Call the original function_call with the adapter
+                    function_response_data = self.function_call(adapter, _id, owner_id)
+                    # Extract the string response content
+                    function_response_content = str(function_response_data.get("function_response", "")) # Ensure string
+                    print(f"Extracted function response content: '{function_response_content}'") # <-- Print extracted content
+                    
+                    # Append the result in Anthropic's tool_result format
+                    tool_results_content.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": function_response_content
+                    })
+                
+                # Create the user message containing all tool results
+                tool_results_msg = {
+                    "role": "user", # Use 'user' role for tool results per Anthropic spec
+                    "content": tool_results_content 
+                }
+                
+                current_conversation.append(tool_results_msg) # Add tool results message to conversation
+                new_messages_for_db.append(tool_results_msg) # Save tool results message
+                
+                # Continue the loop to send results back to the model
+                print(f"Looping back to Anthropic API for {_id} with tool results.")
+
+
+        # Return the list of messages (assistant responses + tool results) added during this processing turn
+        print(f"Finished processing query for {_id}. Returning {len(new_messages_for_db)} new messages.")
         return new_messages_for_db
 

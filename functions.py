@@ -7,32 +7,84 @@ import schedulista_api
 import pytz
 import base64
 import io
+import mimetypes
+import imghdr
 
 TARGET_TZ = pytz.timezone('America/New_York')
 
 def url_to_base64(image_url):
-    """Fetches an image from a URL and returns its base64 representation."""
+    """
+    Fetches an image from a URL, determines its actual type from bytes,
+    and returns its base64 representation and correct media type.
+    """
     try:
+        print(f"Fetching image from URL: {image_url}")
         response = requests.get(image_url, stream=True)
         response.raise_for_status()
 
-        content_type = response.headers.get('content-type')
-        if not content_type or not content_type.lower().startswith('image/'):
-             print(f"Warning: URL did not point to an image. Content-Type: {content_type}")
-             return None
+        image_bytes = response.content # Read all content into memory
+        print(f"Downloaded {len(image_bytes)} bytes.")
 
-        image_bytes = io.BytesIO(response.content).read()
+        # Determine image type from bytes using imghdr
+        image_type = imghdr.what(None, h=image_bytes)
+
+        if not image_type:
+            # Fallback: Try guessing from header Content-Type if imghdr fails
+            content_type_header = response.headers.get('content-type')
+            print(f"imghdr failed. Trying Content-Type header: {content_type_header}")
+            if content_type_header and content_type_header.lower().startswith('image/'):
+                 media_type = content_type_header.split(';')[0].lower()
+                 print(f"Using media_type from header: {media_type}")
+            else:
+                # Fallback 2: Try guessing from URL extension
+                guessed_type, _ = mimetypes.guess_type(image_url)
+                print(f"Header failed. Trying mimetypes guess from URL: {guessed_type}")
+                if guessed_type and guessed_type.lower().startswith('image/'):
+                    media_type = guessed_type.lower()
+                    print(f"Using media_type from mimetypes guess: {media_type}")
+                else:
+                    print(f"Error: Could not determine image type for URL: {image_url}")
+                    return None, None # Cannot determine type
+        else:
+            # imghdr was successful, map common types to MIME types
+            print(f"imghdr detected type: {image_type}")
+            if image_type == 'jpeg':
+                media_type = 'image/jpeg'
+            elif image_type == 'png':
+                media_type = 'image/png'
+            elif image_type == 'gif':
+                media_type = 'image/gif'
+            elif image_type == 'webp':
+                media_type = 'image/webp'
+            # Add more mappings if needed (e.g., tiff, bmp)
+            else:
+                # Use the type detected by imghdr directly if it's a known image format
+                # but not explicitly mapped above. This might work for some APIs.
+                # Alternatively, try to guess MIME type more broadly.
+                # For safety, let's try mimetypes based on the detected extension.
+                guessed_type, _ = mimetypes.guess_type(f".{image_type}")
+                if guessed_type:
+                    media_type = guessed_type
+                    print(f"Using media_type guessed from imghdr result: {media_type}")
+                else:
+                    print(f"Warning: Unknown image type '{image_type}' detected by imghdr. Returning as is.")
+                    media_type = f"image/{image_type}" # Best guess
+
+        print(f"Final determined media_type: {media_type}")
+
+        # Encode the bytes we already read
         base64_bytes = base64.b64encode(image_bytes)
         base64_string = base64_bytes.decode('utf-8')
+        print("Successfully encoded image to base64.")
 
-        return base64_string
+        return base64_string, media_type # Return base64 and the detected media type
 
     except requests.exceptions.RequestException as e:
         print(f"Error fetching image from URL {image_url}: {e}")
-        return None
+        return None, None
     except Exception as e:
-        print(f"Error encoding image from URL {image_url} to base64: {e}")
-        return None
+        print(f"Error processing image from URL {image_url}: {e}")
+        return None, None
 
 def send_example(service,owner_id):
     info = database.get_dataset(owner_id)
