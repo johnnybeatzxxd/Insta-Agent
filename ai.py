@@ -211,7 +211,7 @@ class llm:
             info = function_args.get("info")
             
             if info:
-                returned_info = functions.get_information(info,self.owner_id)
+                returned_info = functions.get_information(info,_id,owner_id)
                 return {"function_response":str(returned_info),"image":None}
                 
             else:
