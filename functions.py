@@ -9,9 +9,35 @@ import base64
 import io
 import mimetypes
 import imghdr
+import re
 
 TARGET_TZ = pytz.timezone('America/New_York')
 
+
+def normalize_us_number(raw_number: str) -> str:
+    # Remove all non-digit characters
+    digits = re.sub(r'\D', '', raw_number)
+
+    if len(digits) == 11 and digits.startswith('1'):
+        digits = digits[1:]
+    elif len(digits) == 11 and not digits.startswith('1'):
+        return "U.S. numbers must start with +1 or have 10 digits only."
+
+    # Length check
+    if len(digits) != 10:
+        return "That doesn’t look like a valid U.S. number — it should have 10 digits."
+
+    area_code = digits[:3]
+    prefix = digits[3:6]
+
+    # NANP rule checks
+    if area_code[0] not in '23456789':
+        return "Area code can't start with 0 or 1 "
+    if prefix[0] not in '23456789':
+        return "That number looks off — the part after the area code can't start with 0 or 1 either."
+
+    # If valid
+    return f'+1{digits}'
 def url_to_base64(image_url):
     """
     Fetches an image from a URL, determines its actual type from bytes,
@@ -113,7 +139,10 @@ def book_appointment(_id,args,owner_id):
     start_time = args.get("booked_datetime")
     note = args.get("note")
     duration = args.get("duration","60")
-    
+    phone_number = normalize_us_number(str(phone_number))
+    if not phone_number.startswith("+1"):
+        return phone_number
+
     client = schedulista_api.get_clients(phone_number)
     if client:
         client = client[0][0]
@@ -367,4 +396,4 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    print(send_example("classic",17841433182941465))
+    print(normalize_us_number("13987689092"))
