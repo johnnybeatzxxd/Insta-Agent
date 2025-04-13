@@ -82,14 +82,18 @@ tools = [
                     },
                     "phone_number": {
                         "type": "string",
-                        "description": "The customer's phone number in this format +442012345678.it should be atleast 10 digit.",
+                        "description": "The customer's phone number. it should be atleast 10 digit.",
                     },
+                    "email":{
+                        "type":"string",
+                        "description": "email of the customer",
+                        },
                     "note":{
                         "type": "string",
                         "description": "discription about the appointment. should include service name,user name, deposit_amount,deal_price",
                     }
                 },
-            "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name", "phone_number","note"]
+                         "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name","email", "phone_number","note"]
         }
     },
     {
@@ -341,14 +345,18 @@ class llm:
             else:
                 # --- Handle Tool Use ---
                 print(f"Anthropic response for {_id}: Tool use required ({len(tool_use_blocks)} tools).")
+                save_response = False
                 # Add the raw tool_use blocks to the assistant message content
                 for tool_use in tool_use_blocks:
-                     assistant_message_content.append({
+                     func_call = {
                          "type": "tool_use",
                          "id": tool_use.id,
                          "name": tool_use.name,
                          "input": tool_use.input
-                     })
+                     }
+                     assistant_message_content.append(func_call)
+                     if tool_use.name == "check_availablity":
+                         save_response = True
                 
                 current_conversation.append(assistant_msg_to_save) # Add assistant msg with tool_use
                 new_messages_for_db.append(assistant_msg_to_save) # Save assistant msg with tool_use
@@ -374,17 +382,22 @@ class llm:
                     print(f"Extracted function response content: '{function_response_content}'") # <-- Print extracted content
                     
                     # Append the result in Anthropic's tool_result format
-                    tool_results_content.append({
+                    func_response = {
                         "type": "tool_result",
                         "tool_use_id": tool_use.id,
                         "content": function_response_content
-                    })
+                    }
+                    tool_results_content.append(func_response)
+                    database.add_message(_id, [func_response], owner_id)
                 
                 # Create the user message containing all tool results
                 tool_results_msg = {
                     "role": "user", # Use 'user' role for tool results per Anthropic spec
                     "content": tool_results_content 
                 }
+                
+                if save_response:
+                    database.add_message(_id, [tool_results_msg], owner_id)
                 
                 current_conversation.append(tool_results_msg) # Add tool results message to conversation
                 new_messages_for_db.append(tool_results_msg) # Save tool results message

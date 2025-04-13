@@ -132,6 +132,7 @@ def reschedule_appointment(client_id,appointment_id,start_time,duration):
 
 def book_appointment(_id,args,owner_id):
     name = args.get("name")
+    email = args.get("email")
     phone_number = args.get("phone_number")
     service = args.get("service")
     deposit_amount = args.get("deposit_amount")
@@ -142,21 +143,28 @@ def book_appointment(_id,args,owner_id):
     phone_number = normalize_us_number(str(phone_number))
     if not phone_number.startswith("+1"):
         return phone_number
+    print(f"Phone Number: {phone_number}")
 
-    client = schedulista_api.get_clients(phone_number)
+    if email:
+        client = schedulista_api.get_clients(email)
+    else:
+        client = schedulista_api.get_clients(phone_number)
+
     if client:
         client = client[0][0]
         print(client)
         client_id = client.get("id")
     else:
         try:
-            client = schedulista_api.create_client(name,phone_number)
-            if client.get("errors"):
-                raise client["errors"][0]
+            clients = schedulista_api.create_client(name,phone_number,email)
+            print("client:",clients)
+            if clients.get("errors"):
+                raise clients["errors"][0]
+            client = clients['client']
             client_id = client["id"]
         except Exception as error:
             try:
-                client = schedulista_api.create_client(name,"")
+                client = schedulista_api.create_client(name,"",email)
                 if client.get("errors"):
                     raise client["errors"][0]
                 client_id = client["id"]
@@ -396,4 +404,4 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    print(normalize_us_number("13987689092"))
+    print(normalize_us_number("2098768909"))

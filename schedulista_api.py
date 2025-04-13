@@ -83,10 +83,11 @@ def create_appointment(client_id,name,phone_number,start_time="",end_time="2025-
     print("Response Text:", response.text)
     return response.json()
 
-def create_client(name,phone_number):
+def create_client(name,phone_number,email):
     url = "https://www.schedulista.com/clients/create_client"
-    first_name = name.split(" ")[0]
-    last_name = name.split(" ")[1] or ""
+    parts = name.split(" ")
+    first_name = parts[0]
+    last_name = parts[1] if len(parts) > 1 else ""
     payload = {
     "utf8": "✓",
     "authenticity_token": "Lwc8REmV32aWFCG26x0zcpQQPOjtykDclHBvUX599wlruas1fDWDTXOM2GPyXhMHwuBm0l2qVo15/59OPZfq3g==",
@@ -95,7 +96,7 @@ def create_client(name,phone_number):
     "business_client[phone]": f"{phone_number}",
     "business_client[sms_on]": "0",
     "business_client[sms_reminder_lead_time_minutes]": "60",
-    "business_client[email]": "",
+    "business_client[email]": f"{email}",
     "business_client[time_zone]": "",
     "business_client[notes]": ""
     }
