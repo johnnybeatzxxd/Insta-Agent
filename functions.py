@@ -225,8 +225,9 @@ def get_information(key,user_id,owner_id):
                 if "Eyelash Extensions" in name and "Mega Volume" not in name:
                     modified_service["price"] = 90  # Update the price
                 modified_services.append(modified_service)
-            return modified_services # Return the modified list
-
+            return f"Do not mention the price of sets unless you are asked: {modified_services}" # Return the modified list
+    if key == "services":
+        return f"Do not mention the price of sets unless you are asked: {result}"
     # Return the original result if key is not 'services' or condition not met
     return result
 
