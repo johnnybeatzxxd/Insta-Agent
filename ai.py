@@ -388,7 +388,6 @@ class llm:
                         "content": function_response_content
                     }
                     tool_results_content.append(func_response)
-                    database.add_message(_id, [func_response], owner_id)
                 
                 # Create the user message containing all tool results
                 tool_results_msg = {
