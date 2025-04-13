@@ -345,7 +345,8 @@ class llm:
             else:
                 # --- Handle Tool Use ---
                 print(f"Anthropic response for {_id}: Tool use required ({len(tool_use_blocks)} tools).")
-                save_response = False
+                # Flag to determine if messages related to this tool call should be saved
+                should_save_messages = False 
                 # Add the raw tool_use blocks to the assistant message content
                 for tool_use in tool_use_blocks:
                      func_call = {
@@ -355,11 +356,13 @@ class llm:
                          "input": tool_use.input
                      }
                      assistant_message_content.append(func_call)
+                     print(tool_use.name)
+                     # Set flag if 'check_availablity' is used
                      if tool_use.name == "check_availablity":
-                         save_response = True
+                         should_save_messages = True # Rename flag for clarity
                 
-                current_conversation.append(assistant_msg_to_save) # Add assistant msg with tool_use
-                new_messages_for_db.append(assistant_msg_to_save) # Save assistant msg with tool_use
+                current_conversation.append(assistant_msg_to_save) # Add assistant msg with tool_use to current state
+                new_messages_for_db.append(assistant_msg_to_save) # Add to messages to be returned (always)
 
                 # --- Prepare Tool Results ---
                 tool_results_content = []
@@ -394,12 +397,19 @@ class llm:
                     "role": "user", # Use 'user' role for tool results per Anthropic spec
                     "content": tool_results_content 
                 }
-                
-                if save_response:
-                    database.add_message(_id, [tool_results_msg], owner_id)
-                
-                current_conversation.append(tool_results_msg) # Add tool results message to conversation
-                new_messages_for_db.append(tool_results_msg) # Save tool results message
+                                
+                current_conversation.append(tool_results_msg) # Add tool results message to conversation state
+                new_messages_for_db.append(tool_results_msg) # Add tool results message to the list for return (always)
+
+                # Conditionally save BOTH the assistant's tool_use request AND the tool results message
+                if should_save_messages:
+                    print(f"Saving assistant tool request and tool results for {_id} because 'check_availablity' was called.")
+                    # Save the assistant message that requested the tool use
+                    database.add_message(_id,[assistant_msg_to_save],owner_id)
+                    # Save the user message containing the tool results
+                    database.add_message(_id,[tool_results_msg],owner_id)
+                else:
+                    print(f"Skipping save for assistant tool request and tool results for {_id} ('check_availablity' not called).")
                 
                 # Continue the loop to send results back to the model
                 print(f"Looping back to Anthropic API for {_id} with tool results.")
@@ -407,5 +417,6 @@ class llm:
 
         # Return the list of messages (assistant responses + tool results) added during this processing turn
         print(f"Finished processing query for {_id}. Returning {len(new_messages_for_db)} new messages.")
+        print(new_messages_for_db)
         return new_messages_for_db
 
