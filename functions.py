@@ -319,6 +319,7 @@ def availablity(date_input):
         response = requests.get(url)
         response.raise_for_status()
         
+        print(response.json())
         parsed_data = json.loads(response.text)
 
         processed = {
@@ -405,4 +406,4 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    print(normalize_us_number("2098768909"))
+    print(availablity("today"))

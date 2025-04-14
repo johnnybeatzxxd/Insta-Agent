@@ -358,7 +358,7 @@ class llm:
                      assistant_message_content.append(func_call)
                      print(tool_use.name)
                      # Set flag if 'check_availablity' is used
-                     if tool_use.name == "check_availablity":
+                     if tool_use.name in ["check_availablity","book_appointment","reschedule_appointment","cancel_appointment"]:
                          should_save_messages = True # Rename flag for clarity
                 
                 current_conversation.append(assistant_msg_to_save) # Add assistant msg with tool_use to current state
