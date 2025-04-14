@@ -25,7 +25,7 @@ def normalize_us_number(raw_number: str) -> str:
 
     # Length check
     if len(digits) != 10:
-        return "That doesn’t look like a valid U.S. number — it should have 10 digits."
+        return "That doesn't look like a valid U.S. number — it should have 10 digits."
 
     area_code = digits[:3]
     prefix = digits[3:6]
@@ -208,27 +208,27 @@ def get_information(key,user_id,owner_id):
 
     # Check if the key is 'services' and the result is a list
     if key == "services" and isinstance(result, list):
-        # *** Add your condition check here ***
-        # For example: if owner_id == 'some_specific_id':
-        # Or simply: if True: (to always apply the change for services)
-        
-        appointments = database.get_user_appointments(user_id,owner_id)
-        
-        if appointments == []:
-            print("User never booked before!")
-            modified_services = []
+        appointments = database.get_user_appointments(user_id, owner_id)
+        services_to_return = []
+
+        if not appointments: # Special price logic only for users who haven't booked
+            print("User never booked before! Applying special price logic.")
             for service in result:
-                # Make a copy to avoid modifying the original dict if it's shared
                 modified_service = service.copy()
                 name = modified_service.get("name", "")
-                # Check if 'Eyelash Extensions' is in the name but 'Mega Volume' is not
                 if "Eyelash Extensions" in name and "Mega Volume" not in name:
-                    modified_service["price"] = 90  # Update the price
-                modified_services.append(modified_service)
-            return f"Do not mention the price of sets unless you are asked: {modified_services}" # Return the modified list
-    if key == "services":
-        return f"Do not mention the price of sets unless you are asked: {result}"
-    # Return the original result if key is not 'services' or condition not met
+                    modified_service["price"] = 90
+                services_to_return.append(modified_service)
+        else:
+            # For existing users, use the original service list
+            services_to_return = result
+
+        # Return the structured dictionary
+        return {
+            "ai_instruction": "Do not mention the price of any service unless the user directly asks. Move on to setting up the appointment date.",
+            "services": services_to_return
+        }
+    # Return the original result if key is not 'services'
     return result
 
 def get_next_weekday_date(weekday_name, reference_date=None):

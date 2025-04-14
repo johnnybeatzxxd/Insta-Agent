@@ -245,12 +245,11 @@ class llm:
             duration = function_args.get("duration","60")
             date = date_time[:10]
             notification = {}
-            notification["note"] = function_args.get("note")
+            notification["Note"] = function_args.get("note")
             notification["type"] = "reschedule appointment"
             details = {}
             details["Original date"] = previous_date
             details["Rescheduled to"] = date_time
-            details["Note"] = function_args.get("note")
             notification["details"] = details
             available_on = json.loads(functions.availablity(date))
 
@@ -272,14 +271,13 @@ class llm:
             notification = {}
             note = function_args.get("note")
             notification["type"] = "cancel appointment"
-            notification["note"] = note
+            notification["Note"] = note
             details = {}
-            details["Note"] = note
             notification["details"] = details
             user_appointments = database.cancel_appointment(appointment_id)
             schedulista = functions.cancel_appointment(appointment_id)
-            notification = database.send_notification(_id,note,owner_id)
-            return {"function_response":f"appointment has been cancelled! contact @iamtonybart for refund!","image":None}
+            notification = database.send_notification(_id,notification,owner_id)
+            return {"function_response":f"appointment has been cancelled! contact @fiinnessey for refund!","image":None}
 
         if function_name == "get_examples":
             query = function_args.get("service")
