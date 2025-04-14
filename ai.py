@@ -255,10 +255,15 @@ class llm:
             available_on = json.loads(functions.availablity(date))
 
             if functions.is_time_available(date_time, available_on):
-                user_appointments = database.reschedule_appointment(appointment_id,date_time)
-                reschedule_appointment = functions.reschedule_appointment(client_id,appointment_id,date_time,duration)
+                try:
+                    user_appointments = database.reschedule_appointment(appointment_id,date_time)
+                except Exception as e:
+                    print("error while saving reschedule:",e)
+                try:
+                    reschedule_appointment = functions.reschedule_appointment(client_id,appointment_id,date_time,duration)
+                except Exception as e:
+                    print("error while reschudling in schedulista:",e)
                 database.send_notification(_id,notification,owner_id)
-
                 return {"function_response":"appointment rescheduled!","image":None}
             return {"function_response":"error: specified date is not available","image":None}
 
@@ -358,7 +363,7 @@ class llm:
                      assistant_message_content.append(func_call)
                      print(tool_use.name)
                      # Set flag if 'check_availablity' is used
-                     if tool_use.name in ["check_availablity","book_appointment","reschedule_appointment","cancel_appointment"]:
+                     if tool_use.name in ["check_availablity","book_appointment","reschedule_appointment","cancel_appointment","get_user_appointments"]:
                          should_save_messages = True # Rename flag for clarity
                 
                 current_conversation.append(assistant_msg_to_save) # Add assistant msg with tool_use to current state

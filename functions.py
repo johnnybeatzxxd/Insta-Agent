@@ -386,8 +386,10 @@ def availablity(date_input):
         return json.dumps({"error": f"An unexpected error occurred: {e}", "url_requested": url}, indent=2)
 
 def is_time_available(appointment_time, schedule):
+    print("is time available",schedule)
     for slot in schedule.get("available_times"):
-        slot_time = slot["start_time"][:19]  # Extract only the YYYY-MM-DDTHH:MM:SS part
+        print('this is slot:',slot)
+        slot_time = slot["start_time_iso"][:19]  # Extract only the YYYY-MM-DDTHH:MM:SS part
 
         # Convert slot time to a common format
         formatted_slot_time = datetime.strptime(slot_time, "%Y-%m-%dT%H:%M:%S")
