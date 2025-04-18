@@ -6,10 +6,8 @@ import time
 import os
 from dotenv import load_dotenv
 import traceback
-# Remove OpenAI import if present
-# from openai import OpenAI, APIConnectionError # Assuming this or similar was used before
-import anthropic # Import Anthropic SDK
-
+import anthropic 
+from google_docs_helper import append_lines_to_google_doc
 # Import SimpleNamespace for the adapter
 from types import SimpleNamespace 
 
@@ -90,7 +88,7 @@ tools = [
                         },
                     "note":{
                         "type": "string",
-                        "description": "discription about the appointment. should include service name,user name, deposit_amount,deal_price",
+                        "description": "discription about the appointment. should include service name,day and time (in human readable format),user name, deposit_amount,deal_price",
                     }
                 },
                          "required": ["service", "deposit_amount","deal_price", "booked_datetime", "name","email", "phone_number","note"]
@@ -214,6 +212,7 @@ class llm:
 
         if function_name == "book_appointment": 
             ap = function_args 
+            name = args.get("name")
             ap["payment_confirmed"] = False
             note = function_args.get("note")
             notification = {}
@@ -227,10 +226,12 @@ class llm:
             notification["Note"] = function_args.get("note")
             notification["details"] = detail
 
-            response = functions.book_appointment(_id,ap,owner_id)
+            # response = functions.book_appointment(_id,ap,owner_id)
+            append_lines_to_google_doc(ap)
             notification = database.send_notification(_id,notification,owner_id)
             
-            return {"function_response":str(response),"image":None}
+            # return {"function_response":str(response),"image":None}
+            return {"function_response":"appointment booked",image":None}
 
         if function_name == "get_user_appointments":
             phone_number = function_args.get("phone_number",None)

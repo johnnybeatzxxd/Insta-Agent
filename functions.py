@@ -10,9 +10,15 @@ import io
 import mimetypes
 import imghdr
 import re
+from google_docs_helper import append_lines_to_google_doc
+from dotenv import load_dotenv
 
+load_dotenv(override=True)
 TARGET_TZ = pytz.timezone('America/New_York')
+google_doc_id = os.getenv("GOOGLE_DOC_ID")
 
+def save_on_docs(appointment):
+    append_lines_to_google_doc(google_doc_id, appointment.get("note"))
 
 def normalize_us_number(raw_number: str) -> str:
     # Remove all non-digit characters
