@@ -10,7 +10,7 @@ import io
 import mimetypes
 import imghdr
 import re
-from google_docs_helper import append_lines_to_google_doc
+import os
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
@@ -18,7 +18,8 @@ TARGET_TZ = pytz.timezone('America/New_York')
 google_doc_id = os.getenv("GOOGLE_DOC_ID")
 
 def save_on_docs(appointment):
-    append_lines_to_google_doc(google_doc_id, appointment.get("note"))
+    # add_appointment_to_google_doc(google_doc_id, appointment.get("note"))
+    pass
 
 def normalize_us_number(raw_number: str) -> str:
     # Remove all non-digit characters
@@ -198,7 +199,7 @@ def book_appointment(_id,args,owner_id):
     appointment_id = appointment["created_appointment"]["id"]
     args["appointment_id"] = appointment_id
     database.set_appointment(_id,args,owner_id)
-    return f"Appointment has been booked. Appointment ID: {appointment_id}"
+    return f"Appointment has been booked. Appointment ID: {appointment_id}", appointment_id
 
 def get_information(key,user_id,owner_id):
     info = database.get_dataset(owner_id)

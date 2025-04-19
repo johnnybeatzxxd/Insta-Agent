@@ -27,7 +27,7 @@ headers = {
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
     "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36",
-    "x-csrf-token": "lH//3G9WOkpBGFVS1mbtS0RhxvZyufceFV2YNqADIUTQwWitWvZmYaSArIfPJc0+EpGczMLZ4U/40mgp4+k8kw==",
+    "x-csrf-token": "aDuyeukNoJOvrLIoxZFwkZ8VcE1qVJVzRz84VM2dWPw1pZqa5mmnPnXpp09PZUIvmZz5LdPoGJLaG2TiWnzahQ==",
     "x-requested-with": "XMLHttpRequest"
 }
 
@@ -35,7 +35,7 @@ def create_appointment(client_id,name,phone_number,start_time="",end_time="2025-
     url = "https://www.schedulista.com/calendar/create_appointment_v2"
     payload = {
         "utf8": "✓",
-        "authenticity_token": "Lwc8REmV32aWFCG26x0zcpQQPOjtykDclHBvUX599wlruas1fDWDTXOM2GPyXhMHwuBm0l2qVo15/59OPZfq3g==",
+        "authenticity_token": "aDuyeukNoJOvrLIoxZFwkZ8VcE1qVJVzRz84VM2dWPw1pZqa5mmnPnXpp09PZUIvmZz5LdPoGJLaG2TiWnzahQ==",
         "appointment_id": "",
         "personal_appointment_id": "",
         "is_appointment_edit": "true",
@@ -90,7 +90,7 @@ def create_client(name,phone_number,email):
     last_name = parts[1] if len(parts) > 1 else ""
     payload = {
     "utf8": "✓",
-    "authenticity_token": "Lwc8REmV32aWFCG26x0zcpQQPOjtykDclHBvUX599wlruas1fDWDTXOM2GPyXhMHwuBm0l2qVo15/59OPZfq3g==",
+    "authenticity_token": "aDuyeukNoJOvrLIoxZFwkZ8VcE1qVJVzRz84VM2dWPw1pZqa5mmnPnXpp09PZUIvmZz5LdPoGJLaG2TiWnzahQ==",
     "business_client[first_name]": f"{first_name}",
     "business_client[last_name]": f"{last_name}",   
     "business_client[phone]": f"{phone_number}",
@@ -110,7 +110,7 @@ def reschedule(client_id,appointment_id,start_time,end_time,duration):
     url = "https://www.schedulista.com/calendar/update_appointment_v2"
     payload = {
         "utf8": "✓",
-        "authenticity_token": "FZMaKUCVcAdtuhcShgyxJMx96njWDqRmMMSu7oBApRxRLY1YdTUsLIgi7sefT5FRmo2wQmZusjfdS17xw6q4yw==",
+        "authenticity_token": "aDuyeukNoJOvrLIoxZFwkZ8VcE1qVJVzRz84VM2dWPw1pZqa5mmnPnXpp09PZUIvmZz5LdPoGJLaG2TiWnzahQ==",
         "appointment_id": appointment_id,
         "personal_appointment_id": "",
         "is_appointment_edit": "true",
@@ -193,9 +193,9 @@ def get_activities():
 
 
 
-# get_clients("+443")
+# get_clients()
 # get_activities()
 # cancel_appointments()
 # reschedule()
-# create_client()
+# create_client("yohans yifru","+15235698214","dee@gmail.com")
 # book(1082988709)

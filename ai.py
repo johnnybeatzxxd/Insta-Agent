@@ -7,8 +7,7 @@ import os
 from dotenv import load_dotenv
 import traceback
 import anthropic 
-from google_docs_helper import append_lines_to_google_doc
-# Import SimpleNamespace for the adapter
+from google_docs_helper import add_appointment_to_google_doc
 from types import SimpleNamespace 
 
 import functions
@@ -226,12 +225,13 @@ class llm:
             notification["Note"] = function_args.get("note")
             notification["details"] = detail
 
-            # response = functions.book_appointment(_id,ap,owner_id)
-            append_lines_to_google_doc(ap)
+            response,appointment_id = functions.book_appointment(_id,ap,owner_id)
+            ap["appointment_id"] = appointment_id
+            add_appointment_to_google_doc(ap)
             notification = database.send_notification(_id,notification,owner_id)
             
             # return {"function_response":str(response),"image":None}
-            return {"function_response":"appointment booked",image":None}
+            return {"function_response":"appointment booked","image":None}
 
         if function_name == "get_user_appointments":
             phone_number = function_args.get("phone_number",None)
