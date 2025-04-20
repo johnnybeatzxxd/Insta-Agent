@@ -138,13 +138,13 @@ def format_appointment_line(appointment_details: Dict[str, Any]) -> Optional[str
     try:
         # --- Extract data ---
         name = appointment_details.get('name', 'N/A')
-        iso_dt_str = appointment_details.get('date_time')
+        iso_dt_str = appointment_details.get('booked_datetime')
         if not iso_dt_str:
             raise ValueError("Missing 'date_time' in appointment_details")
         dt_obj = datetime.fromisoformat(iso_dt_str)
 
         # Extract new keys and handle potential '$' sign
-        deposit_raw = appointment_details.get('deposit', '')
+        deposit_raw = appointment_details.get('deposit_amount', '')
         deal_price_raw = appointment_details.get('deal_price', '')
         service = appointment_details.get('service', '').strip() # Remove leading/trailing spaces
         appointment_id = appointment_details.get('appointment_id') # Get the appointment ID
@@ -185,8 +185,92 @@ def format_appointment_line(appointment_details: Dict[str, Any]) -> Optional[str
         print(f"   Details: {appointment_details}")
         return None
 
+# <<< NEW FUNCTION: parse_appointment_line >>>
+def parse_appointment_line(line_text: str) -> Optional[Dict[str, Any]]:
+    """
+    Parses a formatted appointment line string back into a dictionary.
+    Handles various formats including optional service, price, ID, and reschedule note.
+    Returns None if parsing fails.
+    """
+    details = {}
+    original_text = line_text # Keep for reference if needed
+
+    # Regex to capture components, ignoring potential reschedule note for parsing
+    pattern = re.compile(
+        r"^([^-\(]+)\s+-\s+"                  # 1: Name
+        r"([^-(\s]+)"                          # 2: Time
+        r"(?:\s+([^\(\$]+?))?"                 # 3: Optional Service (non-greedy)
+        # Price block variations
+        r"(?:"
+        r"\s+\(\$([\d\.]+)(?:[\s/]+([\d\.]+))?\)" # 4,5: ($deposit[/deal_price]) or ($price alone if / missing)
+        r"|"
+        r"\s+\(\$([\d\.]+)\s+deposit\)"          # 6: ($deposit deposit)
+        # Note: The ($price) case is handled by group 4 when group 5 is None
+        r")?" # End optional price block
+        r"(?:\s+\(rescheduled\s+to\s+[^)]+\))?" # Ignore reschedule note during parse
+        r"(?:\s+\(ID:\s*([^)]+)\))?"          # 7: Optional ID
+        r"\s*$", re.IGNORECASE
+    )
+
+    match = pattern.match(line_text.strip())
+    if not match:
+        # Fallback/debug attempt if primary parse fails maybe due to edge cases or reschedule note placement
+        id_match = re.search(r"\(ID:\s*([^)]+)\)", line_text)
+        if id_match:
+            details['appointment_id'] = id_match.group(1).strip()
+            print(f"⚠️ Primary parse failed for line: '{line_text}'. Extracted ID '{details['appointment_id']}' via fallback. Other details might be missing.")
+            # Attempt a simpler parse for name/time at least?
+            simple_match = re.match(r"^([^-\(]+)\s+-\s+([^-(\s]+)", line_text.strip())
+            if simple_match:
+                details['name'] = simple_match.group(1).strip()
+                details['time_str'] = simple_match.group(2).strip()
+            else:
+                 details['name'] = "Parse Error"
+                 details['time_str'] = "N/A"
+            details.setdefault('service', '')
+            details.setdefault('deposit_amount', '')
+            details.setdefault('deal_price', '')
+            return details # Return partially parsed data
+        else:
+            print(f"❌ Critial Parse Failure: Could not parse appointment line OR extract ID: '{line_text}'")
+            return None
+
+    groups = match.groups()
+
+    try:
+        details['name'] = groups[0].strip() if groups[0] else 'N/A'
+        details['time_str'] = groups[1].strip() if groups[1] else 'N/A'
+        details['service'] = groups[2].strip() if groups[2] else ''
+
+        # Price extraction logic
+        deposit = None
+        deal_price = None
+        if groups[3]: # Format ($deposit[/deal_price]) or ($price) matched
+            deposit_or_price = groups[3].strip()
+            if groups[4]: # Format ($deposit/deal_price)
+                deposit = deposit_or_price
+                deal_price = groups[4].strip()
+            else: # Format ($price) - assume it's the deal_price
+                deal_price = deposit_or_price
+        elif groups[5]: # Format ($deposit deposit) matched
+            deposit = groups[5].strip()
+
+        details['deposit_amount'] = deposit if deposit else ''
+        details['deal_price'] = deal_price if deal_price else ''
+
+        # ID extraction
+        details['appointment_id'] = groups[6].strip() if groups[6] else None
+
+        return details
+
+    except Exception as e:
+        print(f"❌ Error processing parsed components of appointment line: {e}")
+        print(f"   Line: '{line_text}'")
+        return None
+
 # --- Core Logic: Insert Appointment using API ---
-def add_appointment_to_google_doc(new_appointment_details,document_id=DOC_ID):
+
+def add_appointment_to_google_doc(new_appointment_details, document_id=DOC_ID):
     """
     Finds the correct date location in a Google Doc and inserts the new appointment
     using the Google Docs API, ensuring single blank line spacing and styling.
@@ -195,8 +279,8 @@ def add_appointment_to_google_doc(new_appointment_details,document_id=DOC_ID):
     # ... (rest of the initial setup, getting service, processing appointment details) ...
     try:
         # 1. Process New Appointment Info
-        target_iso_dt = new_appointment_details.get('date_time')
-        if not target_iso_dt: raise ValueError("Missing 'date_time'")
+        target_iso_dt = new_appointment_details.get('booked_datetime')
+        if not target_iso_dt: raise ValueError("Missing 'booked_datetime'")
         target_dt = datetime.fromisoformat(target_iso_dt)
         target_date = target_dt.date()
         target_year = target_dt.year
@@ -364,49 +448,231 @@ def add_appointment_to_google_doc(new_appointment_details,document_id=DOC_ID):
         import traceback; traceback.print_exc()
         return False
 
+# <<< FUNCTION REVISED TO USE add_appointment_to_google_doc >>>
+def reschedule_appointment(appointment_id: str, new_datetime_iso: str, document_id: str = DOC_ID):
+    """
+    Reschedules an appointment using sequential API calls and reusing add_appointment_to_google_doc.
+    1. Finds original line.
+    2. Deletes ID tag from original line.
+    3. Inserts reschedule note into original line.
+    4. Calls add_appointment_to_google_doc to add the new entry.
+    """
+    service = get_docs_service() # Get service once at the beginning
+    if not service: print("❌ Cannot reschedule: Failed to get Google Docs service."); return False
+    if not document_id: print("❌ Cannot reschedule: Missing Google Document ID."); return False
+    if not appointment_id: print("❌ Cannot reschedule: Missing appointment ID."); return False
+    if not new_datetime_iso: print("❌ Cannot reschedule: Missing new date/time string."); return False
+
+    print(f"\n--- Rescheduling Appointment ID: {appointment_id} to {new_datetime_iso} (Sequential + Reuse Add Func) ---")
+
+    try:
+        # === Step 1: Find Original Appointment & Details ===
+        print("Step 1: Finding original appointment...")
+        document = service.documents().get(
+            documentId=document_id,
+            fields='body(content(startIndex,endIndex,paragraph(elements(textRun(content)))))'
+        ).execute()
+        content = document.get('body', {}).get('content', [])
+        if not content: print("⚠️ Document content is empty."); return False
+
+        old_appointment_element = None
+        old_appointment_text = ""
+        old_details = None
+        id_string_to_find = f"(ID: {appointment_id})"
+        original_id_start_index = -1
+        original_id_end_index = -1
+
+        # Find the first non-rescheduled line matching the ID
+        for element in content:
+            if element.get('paragraph'):
+                para_text = get_paragraph_text(element['paragraph'])
+                if id_string_to_find in para_text and "(rescheduled to" not in para_text:
+                    temp_details = parse_appointment_line(para_text)
+                    if temp_details and temp_details.get('appointment_id') == appointment_id:
+                        old_appointment_element = element
+                        old_appointment_text = para_text
+                        old_details = temp_details
+                        print(f"   Found: '{old_appointment_text}'")
+                        print(f"   Parsed: {old_details}")
+                        try:
+                            id_text_index_in_para = old_appointment_text.rindex(id_string_to_find)
+                            original_id_start_index = old_appointment_element['startIndex'] + id_text_index_in_para
+                            original_id_end_index = original_id_start_index + len(id_string_to_find)
+                            print(f"   Original ID range: [{original_id_start_index}-{original_id_end_index})")
+                            break # Found the target
+                        except (ValueError, KeyError) as e:
+                             print(f"   ❌ Error calculating indices for found line: {e}")
+                             old_appointment_element = None; old_details = None; original_id_start_index = -1 # Reset
+
+        if not old_details or original_id_start_index == -1:
+            print(f"❌ Step 1 Failed: Could not find valid, non-rescheduled appointment with ID '{appointment_id}'.")
+            return False
+
+        # === Step 2: Delete the ID Tag ===
+        print(f"Step 2: Deleting ID tag from original line (Range: [{original_id_start_index}-{original_id_end_index}))...")
+        delete_request = {'deleteContentRange': {'range': {'startIndex': original_id_start_index, 'endIndex': original_id_end_index}}}
+        try:
+            service.documents().batchUpdate(documentId=document_id, body={'requests': [delete_request]}).execute()
+            print("   ✅ ID tag deleted successfully.")
+        except HttpError as error:
+            print(f"❌ Step 2 Failed: API error deleting ID tag: {error}")
+            return False # Stop if we can't modify the old line
+
+        # === Step 3: Insert the Reschedule Note ===
+        note_insertion_point = original_id_start_index # Insert where ID started
+        new_datetime = datetime.fromisoformat(new_datetime_iso)
+        reschedule_note = f" (rescheduled to {new_datetime.strftime('%d %b %a')})"
+        print(f"Step 3: Inserting reschedule note '{reschedule_note}' at index {note_insertion_point}...")
+        insert_request = {'insertText': {'location': {'index': note_insertion_point}, 'text': reschedule_note}}
+        try:
+            service.documents().batchUpdate(documentId=document_id, body={'requests': [insert_request]}).execute()
+            print("   ✅ Reschedule note inserted successfully.")
+        except HttpError as error:
+            print(f"❌ Step 3 Failed: API error inserting note: {error}")
+            return False # Stop if we can't modify the old line
+
+        # === Step 4: Add the New Appointment using existing function ===
+        print("Step 4: Calling add_appointment_to_google_doc to add new entry...")
+        # Prepare details for the new appointment based on parsed old details
+        new_appointment_details = old_details.copy()
+        new_appointment_details['booked_datetime'] = new_datetime_iso # Set the new date/time
+        new_appointment_details['appointment_id'] = appointment_id   # Keep the original ID
+        new_appointment_details.pop('time_str', None) # Remove temporary field from parser
+
+        # Call the dedicated function to add the appointment
+        # This function will handle auth, fetching content, finding location, and inserting
+        # Note: We pass the document_id explicitly
+        success = add_appointment_to_google_doc(new_appointment_details, document_id=document_id)
+
+        if success:
+            print("   ✅ add_appointment_to_google_doc completed successfully.")
+            print(f"✅✅ Overall reschedule successful for appointment ID {appointment_id}.")
+            return True
+        else:
+            print("❌ Step 4 Failed: add_appointment_to_google_doc reported an error.")
+            return False
+
+    except ValueError as ve: # Catch parsing errors etc.
+         print(f"❌ Value error during reschedule (check date format?): {ve}")
+         traceback.print_exc()
+         return False
+    except Exception as e:
+        print(f"❌ An unexpected error occurred during reschedule sequence: {e}")
+        traceback.print_exc()
+        return False
+
+def cancel_appointment(appointment_id: str, document_id: str = DOC_ID):
+    """
+    Finds an appointment by its ID in the Google Doc and replaces the
+    ID tag `(ID: appointment_id)` with `(Cancelled)`.
+    """
+    service = get_docs_service()
+    if not service: print("❌ Cannot cancel: Failed to get Google Docs service."); return False
+    if not document_id: print("❌ Cannot cancel: Missing Google Document ID."); return False
+    if not appointment_id: print("❌ Cannot cancel: Missing appointment ID."); return False
+
+    print(f"\n--- Cancelling Appointment ID: {appointment_id} ---")
+
+    try:
+        # === Step 1: Find Original Appointment & Details ===
+        print("Step 1: Finding appointment to cancel...")
+        document = service.documents().get(
+            documentId=document_id,
+            fields='body(content(startIndex,endIndex,paragraph(elements(textRun(content)))))'
+        ).execute()
+        content = document.get('body', {}).get('content', [])
+        if not content: print("⚠️ Document content is empty."); return False
+
+        target_element = None
+        target_text = ""
+        id_string_to_find = f"(ID: {appointment_id})"
+        id_start_index = -1
+        id_end_index = -1
+
+        for element in content:
+            if element.get('paragraph'):
+                para_text = get_paragraph_text(element['paragraph'])
+                # Check if ID exists AND it's not already marked as rescheduled or cancelled
+                if id_string_to_find in para_text and \
+                   "(rescheduled to" not in para_text and \
+                   "(Cancelled)" not in para_text:
+
+                    target_element = element
+                    target_text = para_text
+                    print(f"   Found: '{target_text}'")
+                    try:
+                        # Find the index of the ID string within the paragraph text
+                        id_text_index_in_para = target_text.rindex(id_string_to_find)
+                        # Calculate the absolute start/end index in the document
+                        id_start_index = target_element['startIndex'] + id_text_index_in_para
+                        id_end_index = id_start_index + len(id_string_to_find)
+                        print(f"   ID tag range: [{id_start_index}-{id_end_index})")
+                        break # Found the target
+                    except (ValueError, KeyError) as e:
+                         print(f"   ❌ Error calculating indices for found line: {e}")
+                         target_element = None; id_start_index = -1 # Reset
+
+        if not target_element or id_start_index == -1:
+            print(f"❌ Step 1 Failed: Could not find an active appointment with ID '{appointment_id}'.")
+            return False
+
+        # === Step 2: Replace ID Tag with (Cancelled) ===
+        print(f"Step 2: Replacing ID tag with '(Cancelled)' at index {id_start_index}...")
+        requests = [
+            # Delete the original "(ID: xxx)" text
+            {'deleteContentRange': {'range': {'startIndex': id_start_index, 'endIndex': id_end_index}}},
+            # Insert "(Cancelled)" at the same starting position
+            {'insertText': {'location': {'index': id_start_index}, 'text': '(Cancelled)'}}
+        ]
+
+        try:
+            service.documents().batchUpdate(documentId=document_id, body={'requests': requests}).execute()
+            print("   ✅ Appointment marked as cancelled successfully.")
+            print(f"✅✅ Overall cancellation successful for appointment ID {appointment_id}.")
+            return True
+        except HttpError as error:
+            print(f"❌ Step 2 Failed: API error during cancellation update: {error}")
+            try:
+                error_content = error.resp.get('content', b'{}').decode('utf-8')
+                import json
+                details = json.loads(error_content); print(f"   Error details: {details.get('error', {}).get('message', 'No details provided')}")
+            except Exception as json_err:
+                print(f"   Could not parse error details JSON: {json_err}"); print(f"   Raw error content: {error.resp.get('content')}")
+            return False
+
+    except Exception as e:
+        print(f"❌ An unexpected error occurred during cancellation: {e}")
+        traceback.print_exc()
+        return False
+
 # --- Example Usage ---
+# ... (Keep your existing __main__ block, ensure TARGET_DOCUMENT_ID is set correctly) ...
 if __name__ == "__main__":
-    TARGET_DOCUMENT_ID = "12RzrqWU-ppj5uoQdY3S7_0KTXhBFnJ0Gzrz7N0kVAoU" # <<< CHANGE THIS TO YOUR DOC ID
+    TARGET_DOCUMENT_ID = os.getenv("GOOGLE_DOC_ID")
+    if TARGET_DOCUMENT_ID and TARGET_DOCUMENT_ID != "YOUR_DOCUMENT_ID_HERE":
+        # --- Reschedule Example (Existing) ---
+        # APPOINTMENT_ID_TO_RESCHEDULE = '1124841964' # Use a valid ID from your test doc
+        # NEW_DATETIME_ISO = '2025-04-29T14:00' # Choose a new target date/time
+        # print(f"\n--- Running Reschedule Example (Sequential + Reuse Add Func) ---")
+        # reschedule_appointment(
+        #     appointment_id=APPOINTMENT_ID_TO_RESCHEDULE,
+        #     new_datetime_iso=NEW_DATETIME_ISO,
+        #     document_id=TARGET_DOCUMENT_ID
+        # )
+        # print(f"--- Reschedule Example Finished ---")
 
-    if not all([GOOGLE_REFRESH_TOKEN, GOOGLE_TOKEN_URI, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET]):
-         print("\n🛑 Cannot run example: Google credentials missing in .env")
+        # --- Cancel Example (New) ---
+        # IMPORTANT: Use an ID of an appointment that exists and is NOT already cancelled or rescheduled
+        APPOINTMENT_ID_TO_CANCEL = '1124841964' # <<< CHANGE THIS ID
+        print(f"\n--- Running Cancel Example ---")
+        if APPOINTMENT_ID_TO_CANCEL == 'YOUR_TEST_APPOINTMENT_ID':
+             print("⚠️ Please replace 'YOUR_TEST_APPOINTMENT_ID' with a real ID from your test document to run the cancel example.")
+        else:
+             cancel_appointment(
+                 appointment_id=APPOINTMENT_ID_TO_CANCEL,
+                 document_id=TARGET_DOCUMENT_ID
+             )
+        print(f"--- Cancel Example Finished ---")
 
-    elif TARGET_DOCUMENT_ID == "YOUR_DOCUMENT_ID_HERE": # Add a check for the placeholder
-        print("\n⚠️ Please replace 'YOUR_DOCUMENT_ID_HERE' with your actual Google Doc ID in the script.")
     else:
-        # Example 1: Add to existing date (Using new keys)
-        appt_data_1 = {
-            'name': 'API Client Test',
-            'date_time': '2025-04-10T14:30', # Make sure this date exists or adjust
-            'deposit': '20$', # New key
-            'deal_price': '60', # New key
-            'service': 'API Refill',
-            'notes': 'Via Script' # 'notes' is no longer used in format, but can be kept if needed elsewhere
-        }
-        print("\n--- Attempting to add appointment 1 (Existing Date) ---")
-        add_appointment_to_google_doc(TARGET_DOCUMENT_ID, appt_data_1)
-
-
-        # Example 2: Add a new date (Using new keys, no service)
-        appt_data_2 = {
-            'name': 'Future API Booking',
-            'date_time': '2025-04-21T10:00', # Choose a date likely not present
-            'deposit': '50', # New key
-            'deal_price': '120', # New key
-            'service': '', # Empty service
-            'notes': 'API Deposit Paid'
-        }
-        print("\n--- Attempting to add appointment 2 (New Date) ---")
-        add_appointment_to_google_doc(TARGET_DOCUMENT_ID, appt_data_2)
-
-        # Example 3: Add another appointment (Using new keys)
-        appt_data_3 = {
-            'name': 'Second Future API',
-            'date_time': '2025-04-18T15:00', # Same date as above, later time
-            'deposit': '10$', # New key
-            'deal_price': '30', # New key
-            'service': 'API Touchup',
-            'notes': ''
-        }
-        print("\n--- Attempting to add appointment 3 (To potentially new date) ---")
-        add_appointment_to_google_doc(TARGET_DOCUMENT_ID, appt_data_3)
+         print("\n🛑 Skipping examples: Set GOOGLE_DOC_ID in .env or TARGET_DOCUMENT_ID in script.")

@@ -2,5 +2,9 @@
 lazygit
 .git
 .gitignore
+scrape.py
+ai-test.
+instruction.txt
+info.json
 *.env
 /__pycache__/

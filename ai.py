@@ -7,7 +7,7 @@ import os
 from dotenv import load_dotenv
 import traceback
 import anthropic 
-from google_docs_helper import add_appointment_to_google_doc
+import google_docs_helper 
 from types import SimpleNamespace 
 
 import functions
@@ -67,7 +67,7 @@ tools = [
                     },
                     "deal_price": {
                         "type": "number",
-                        "description": "The deal price or discounted price of the service booked if any.",
+                        "description": "The acutally serivce price you got from get_information function.",
                     },
                     "booked_datetime": {
                         "type": "string",
@@ -211,7 +211,7 @@ class llm:
 
         if function_name == "book_appointment": 
             ap = function_args 
-            name = args.get("name")
+            name = function_args.get("name")
             ap["payment_confirmed"] = False
             note = function_args.get("note")
             notification = {}
@@ -227,7 +227,7 @@ class llm:
 
             response,appointment_id = functions.book_appointment(_id,ap,owner_id)
             ap["appointment_id"] = appointment_id
-            add_appointment_to_google_doc(ap)
+            google_docs_helper.add_appointment_to_google_doc(ap)
             notification = database.send_notification(_id,notification,owner_id)
             
             # return {"function_response":str(response),"image":None}
@@ -263,6 +263,7 @@ class llm:
                     reschedule_appointment = functions.reschedule_appointment(client_id,appointment_id,date_time,duration)
                 except Exception as e:
                     print("error while reschudling in schedulista:",e)
+                google_docs_helper.reschedule_appointment(appointment_id,date_time)
                 database.send_notification(_id,notification,owner_id)
                 return {"function_response":"appointment rescheduled!","image":None}
             return {"function_response":"error: specified date is not available","image":None}
@@ -277,6 +278,7 @@ class llm:
             notification["details"] = details
             user_appointments = database.cancel_appointment(appointment_id)
             schedulista = functions.cancel_appointment(appointment_id)
+            google_docs_helper.cancel_appointment(appointment_id)
             notification = database.send_notification(_id,notification,owner_id)
             return {"function_response":f"appointment has been cancelled! contact @fiinnessey for refund!","image":None}
 
