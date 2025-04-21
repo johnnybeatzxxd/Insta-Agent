@@ -231,7 +231,7 @@ def process_messages(request):
 
 
             if user_message and user_message["content"]:
-                print(f"Saving message for {sender}: {json.dumps(user_message, indent=2)}") # Pretty print for inspection
+                # print(f"Saving message for {sender}: {json.dumps(user_message, indent=2)}") # Pretty print for inspection
                 database.add_message(sender, [user_message], owner_id)
             else:
                  print(f"No content to save for message from {sender}")

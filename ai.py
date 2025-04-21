@@ -47,8 +47,13 @@ tools = [
                         "type": "string",
                         "description": "The date for checking availability. Can be a specific date in YYYY-MM-DD format or a weekday name (e.g., 'Monday', 'next Friday', 'Tue','today'.'tomorrow','general').'examples': ['2025-03-10', 'Monday', 'next wednesday','today','tomorrow','general'] you can use 'general' for next week it will return available dates with in current month you should use this often!",
                     },
+                    "service":{
+                        "type":"string",
+                        "enum": ["eye lash","eye brow","EMSculpt"],
+                        "description":"the service the user wants to get"
+                        },
                 },
-            "required": ["date"]
+            "required": ["date","service"]
         }
     },
     {
@@ -205,6 +210,10 @@ class llm:
 
         if function_name == "check_availablity":
             date = function_args.get("date")
+            service = function_args.get("service")
+            if service in ["eye brow","EMSculpt"]:
+                database.set_user_active(_id,False,owner_id)
+                return
             if date:
                 available_on = functions.availablity(date)
                 return {"function_response":f"this are the times we are available suggest the user the earliest time:\n{available_on}","image":None}
