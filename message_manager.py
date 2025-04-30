@@ -59,7 +59,7 @@ def process_message_batch(sender_id, owner_id):
     # --- AI Processing (Lock Released) ---
     ai_generated_messages = []
     try:
-        if database.check_user_active(sender_id, owner_id) and database.check_bot_active(sender_id,owner_id):
+        if database.check_user_active(sender_id, owner_id) and database.check_bot_active(owner_id):
             latest_conversation = database.get_conversation(sender_id, owner_id)
             if not latest_conversation:
                  print(f"No conversation found for active user {sender_id}. Skipping AI.")

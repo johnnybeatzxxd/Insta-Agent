@@ -29,14 +29,14 @@ def check_user_active(_id,owner_id):
     user = Users.find_one({"_id":_id,"owner_id":owner_id})
     return user.get("active", True)
 
-def check_bot_active(_id,owner_id):
+def check_bot_active(_id):
     bot = Data.find_one({"_id":int(_id)})
     return bot.get("active", True)
 
 def set_user_active(_id,enabled,owner_id):
     Users.update_one({"_id":_id},{"$set":{"active":enabled}})
 
-def turn_bot(_id,enabled,owner_id):
+def turn_bot(_id,enabled):
     Data.update_one({"_id":int(_id)},{"$set":{"active":enabled}},upsert=True)
 
 def add_message(_id, messages, owner_id):

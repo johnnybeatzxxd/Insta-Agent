@@ -166,9 +166,8 @@ def turn():
         return jsonify({'message': "wrong credentials"}), 400
     owner_id = user["_id"]
     body = request.get_json()
-    customer_id = body["userId"]
     is_enabled = body["is_enabled"]
-    database.turn_bot(customer_id,is_enabled,owner_id)
+    database.turn_bot(owner_id,is_enabled)
     return jsonify({'message': "updated"}), 200
 
 @app.route('/delete_customer',methods=['POST'])
