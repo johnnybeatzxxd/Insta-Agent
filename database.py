@@ -29,8 +29,15 @@ def check_user_active(_id,owner_id):
     user = Users.find_one({"_id":_id,"owner_id":owner_id})
     return user.get("active", True)
 
+def check_bot_active(_id,owner_id):
+    bot = Data.find_one({"_id":int(_id)})
+    return bot.get("active", True)
+
 def set_user_active(_id,enabled,owner_id):
     Users.update_one({"_id":_id},{"$set":{"active":enabled}})
+
+def turn_bot(_id,enabled,owner_id):
+    Data.update_one({"_id":int(_id)},{"$set":{"active":enabled}},upsert=True)
 
 def add_message(_id, messages, owner_id):
     """Adds messages to the conversation history for a user."""
@@ -137,7 +144,7 @@ def get_user_appointments(_id,owner_id,phone_number=None):
 
 def get_dataset(owner_id):
     dataset_entry = Data.find_one({"_id":int(owner_id)})
-    return dataset_entry.get("dataset") if dataset_entry else None
+    return dataset_entry.get("dataset") if dataset_entry else None, dataset_entry.get("active")
 
 def get_business_data(_id):
      data = Data.find_one({"_id":int(_id)})

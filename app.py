@@ -152,6 +152,24 @@ def switch():
     
     return jsonify({'message': "updated"}), 200
 
+@app.route('/turn', methods=['POST'])
+def turn():
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return jsonify({'message': "Missing or invalid Authorization header"}), 400
+        
+    cookie = auth_header.split(' ')[1] 
+    
+    authentication = database.auth()
+    user = authentication.login(cookie=cookie)
+    if user is None:
+        return jsonify({'message': "wrong credentials"}), 400
+    owner_id = user["_id"]
+    body = request.get_json()
+    customer_id = body["userId"]
+    is_enabled = body["is_enabled"]
+    database.turn_bot(customer_id,is_enabled,owner_id)
+    return jsonify({'message': "updated"}), 200
 
 @app.route('/delete_customer',methods=['POST'])
 def cust():
@@ -197,9 +215,9 @@ def deta():
 
         owner_id = user["_id"]
         
-        business_data = database.get_business_data(owner_id)
+        business_data,active = database.get_business_data(owner_id)
 
-        return jsonify({'data': business_data}), 200
+        return jsonify({'data': business_data,"active":active}), 200
 
 @app.route('/save_business_data',methods=['POST'])
 def data():
