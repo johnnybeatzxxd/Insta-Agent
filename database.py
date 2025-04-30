@@ -31,6 +31,7 @@ def check_user_active(_id,owner_id):
 
 def check_bot_active(_id):
     bot = Data.find_one({"_id":int(_id)})
+    print(bot)
     return bot.get("active", True)
 
 def set_user_active(_id,enabled,owner_id):

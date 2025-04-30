@@ -17,7 +17,7 @@ TARGET_TZ = pytz.timezone('America/New_York')
 
 load_dotenv(override=True)
 
-owner_id = os.environ.get("owner_id")
+# owner_id = os.environ.get("owner_id")
 
 # --- New State Variables ---
 # Lock for each sender's state
