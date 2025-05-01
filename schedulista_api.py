@@ -1,10 +1,15 @@
 import requests
 import os
 from dotenv import load_dotenv
+import json
 
 
 load_dotenv(override=True)
 cookie = os.environ.get('schedulista_cookie')
+xcsrf = os.environ.get('schedulista_csrf')
+real_business_id = "1073942433"
+real_provider_id = "1074001982"
+real_service_id = "1074592366"
 
 
 headers = {
@@ -27,7 +32,7 @@ headers = {
     "sec-fetch-mode": "cors",
     "sec-fetch-site": "same-origin",
     "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36",
-    "x-csrf-token": "jvixQ6WAeumqjZOHKWL/7QVJfb4o7R2vOcFObbvTzrLTZpmjquR9RHDIhuCjls1TA8D03pFRkE6k5RLbLDJMyw==",
+    "x-csrf-token": xcsrf,
     "x-requested-with": "XMLHttpRequest"
 }
 
@@ -35,18 +40,18 @@ def create_appointment(client_id,name,phone_number,start_time="",end_time="2025-
     url = "https://www.schedulista.com/calendar/create_appointment_v2"
     payload = {
         "utf8": "✓",
-        "authenticity_token": "jvixQ6WAeumqjZOHKWL/7QVJfb4o7R2vOcFObbvTzrLTZpmjquR9RHDIhuCjls1TA8D03pFRkE6k5RLbLDJMyw==",
+        "authenticity_token": xcsrf,
         "appointment_id": "",
         "personal_appointment_id": "",
         "is_appointment_edit": "true",
         "orig_start_time": "",
-        "business_id": "1073946337",
+        "business_id": real_business_id,
         "recurrence[formatted_recurrence_ends_on_date]": "",
-        "provider_id": "1074007544",
+        "provider_id":real_provider_id, 
         "is_gap_appointment": "false",
         "is_recurring_appointment": "false",
         "color": "",
-        "service_id": "1074613752",
+        "service_id": real_service_id,
         "date": "20250330",
         "start_time": start_time,
         "end_time": end_time,
@@ -90,7 +95,7 @@ def create_client(name,phone_number,email):
     last_name = parts[1] if len(parts) > 1 else ""
     payload = {
     "utf8": "✓",
-    "authenticity_token": "jvixQ6WAeumqjZOHKWL/7QVJfb4o7R2vOcFObbvTzrLTZpmjquR9RHDIhuCjls1TA8D03pFRkE6k5RLbLDJMyw==",
+    "authenticity_token": xcsrf,
     "business_client[first_name]": f"{first_name}",
     "business_client[last_name]": f"{last_name}",   
     "business_client[phone]": f"{phone_number}",
@@ -110,17 +115,17 @@ def reschedule(client_id,appointment_id,start_time,end_time,duration):
     url = "https://www.schedulista.com/calendar/update_appointment_v2"
     payload = {
         "utf8": "✓",
-        "authenticity_token": "jvixQ6WAeumqjZOHKWL/7QVJfb4o7R2vOcFObbvTzrLTZpmjquR9RHDIhuCjls1TA8D03pFRkE6k5RLbLDJMyw==",
+        "authenticity_token": xcsrf,
         "appointment_id": appointment_id,
         "personal_appointment_id": "",
         "is_appointment_edit": "true",
         "orig_start_time": "",
-        "business_id": "1073945781",
+        "business_id": real_business_id,
         "recurrence[formatted_recurrence_ends_on_date]": "",
         "is_gap_appointment": "false",
         "is_recurring_appointment": "false",
         "color": "",
-        "service_id": "1074611095",
+        "service_id": real_service_id,
         "date": "20250331",
         "start_time": start_time,
         "end_time": end_time,
@@ -190,10 +195,11 @@ def get_activities():
 
     response = requests.get(url, headers=headers, data=payload)
     print(f"Request for {url}\n","Response Status Code:", response.status_code)
+    print(json.dumps(response.json(),indent=4))
 
 
 
-# get_clients("yohans")
+# get_clients("y")
 # get_activities()
 # cancel_appointments()
 # reschedule()
