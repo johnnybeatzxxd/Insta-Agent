@@ -182,6 +182,56 @@ def get_conversations(access_token):
         return data
     return None
 
+def get_user_conversation(user_id):
+    """Fetches the conversation history for a specific user_id."""
+    access_token = os.environ.get("long_access_token")
+    if not access_token:
+        print("Error: Long-lived access token not found in environment variables.")
+        return None
+
+    # Use the latest API version you have access to, v22.0 seems current based on your example
+    url = f"https://graph.instagram.com/v22.0/me/conversations"
+    payload = {
+        "platform": "instagram",
+        "fields": "participants,message,messages{created_time,from,message,reactions,shares,attachments}", # Fetch necessary fields
+        "access_token": access_token,
+        "user_id": user_id # Filter by user ID
+    }
+
+    print(f"Fetching conversation for user_id: {user_id}")
+    try:
+        response = requests.get(url, params=payload)
+        response.raise_for_status() # Raise HTTPError for bad responses (4xx or 5xx)
+        data = response.json()
+
+        # Debugging: Print the raw API response
+        # print("Raw API response for user_id", user_id, ":", json.dumps(data, indent=2))
+
+        # Check if the response contains data and the expected structure
+        if data and "data" in data and len(data["data"]) > 0:
+            # Since we filter by user_id, we expect at most one conversation thread
+            conversation_thread = data["data"][0]
+            if "messages" in conversation_thread and "data" in conversation_thread["messages"]:
+                messages = conversation_thread["messages"]["data"]
+                print(f"Found {len(messages)} messages in API for user_id: {user_id}")
+                # API returns messages newest-to-oldest, reverse to get chronological order
+                return messages[::-1] # Return messages in chronological order (oldest first)
+            else:
+                print(f"No 'messages' found in the conversation thread for user_id: {user_id}")
+                return [] # Return empty list if no messages field
+        else:
+            print(f"No conversation data found in API response for user_id: {user_id}")
+            return [] # Return empty list if no data
+
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching conversation for user_id {user_id}: {e}")
+        if hasattr(e, 'response') and e.response is not None:
+             try:
+                 print(f"API Error Response Body: {e.response.json()}")
+             except json.JSONDecodeError:
+                 print(f"API Error Response Text: {e.response.text}")
+        return None # Indicate an error occurred
+
 def get_profile(_id):
     access_token = os.environ.get("long_access_token")
     url = f"https://graph.instagram.com/v22.0/{_id}"
@@ -221,24 +271,16 @@ def send_post(receiver_id,post_id,owner_id):
     
 
 if __name__ == "__main__":
-    # Get message input from the user
-    message_to_test = "Hi dear 🤍 Would you like to book lashes or brows today? ✨"
-
-    # 1. Preprocess markdown links (as done in send_text_message)
-    processed_message = _preprocess_markdown_links(message_to_test)
-
-    # 2. Split the message into initial chunks
-    initial_chunks = _split_message_into_chunks(processed_message)
-    print("\n--- Initial Chunks ---")
-    for i, chunk in enumerate(initial_chunks):
-        print(f"Chunk {i+1}: {chunk}")
-
-    # 3. Combine short chunks
-    final_chunks = _combine_short_chunks(initial_chunks, SHORT_CHUNK_THRESHOLD)
-    print("\n--- Final Chunks (after combining short ones) ---")
-    if final_chunks:
-        print("The following message chunks would be sent:")
-        for i, chunk in enumerate(final_chunks):
-            print(f"Message {i+1}: {chunk}")
+    # --- Test get_user_conversation ---
+    # Replace with a valid user_id you want to test with
+    test_user_id = "1062589199314901" # Example ID from your request
+    print(f"\n--- Testing get_user_conversation for user: {test_user_id} ---")
+    conversation_messages = get_user_conversation(test_user_id)
+    if conversation_messages is not None:
+        print(f"Retrieved {len(conversation_messages)} messages from API.")
+        # Optional: Print the messages for verification
+        for msg in conversation_messages:
+            print(json.dumps(msg, indent=2))
     else:
-        print("No message chunks would be sent.")
+        print("Failed to retrieve conversation from API.")
+    # --- End Test ---
