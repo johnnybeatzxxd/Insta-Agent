@@ -31,7 +31,6 @@ def check_user_active(_id,owner_id):
 
 def check_bot_active(_id):
     bot = Data.find_one({"_id":int(_id)})
-    print(bot)
     return bot.get("active", True)
 
 def set_user_active(_id,enabled,owner_id):
@@ -70,7 +69,30 @@ def add_message(_id, messages, owner_id):
         print(f"Error adding messages for user {_id}: {e}")
         # Return existing conversation or empty list on error
         return get_conversation(_id, owner_id)
+    
+def set_conversation(_id, owner_id, messages):
+    """Replaces the entire conversation history for a user with the provided list."""
+    try:
+        if not isinstance(messages, list):
+             print(f"Error: set_conversation requires 'messages' to be a list for user {_id}.")
+             return False # Indicate failure
 
+        # Use $set to completely replace the 'conversation' field
+        result = Users.update_one(
+            {"_id": _id, "owner_id": owner_id}, # Filter by user and owner
+            {
+                "$set": {"conversation": messages},
+                # Set defaults only when inserting a new user during the sync
+                "$setOnInsert": {"active": True, "owner_id": owner_id}
+            },
+            upsert=True # Create user document if it doesn't exist (essential for sync)
+        )
+        print(f"Set conversation result for {_id}: Matched={result.matched_count}, Modified={result.modified_count}, UpsertedId={result.upserted_id}")
+        return True # Indicate success
+    except Exception as e:
+        print(f"Error in set_conversation for user {_id}: {e}")
+        return False # Indicate failure
+    
 def set_user_info(_id,info):
     Users.update_one({"_id":_id},{"$set":info})
 
