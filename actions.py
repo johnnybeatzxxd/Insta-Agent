@@ -268,7 +268,32 @@ def send_post(receiver_id,post_id,owner_id):
 
     response = requests.post(url,headers=headers,data=json.dumps(data))
     print(response.json())
-    
+
+def send_entrance_image(receiver_id):
+    access_token = os.environ.get("long_access_token")
+    image_url = "https://media-hosting.imagekit.io/e7ea7d1a0e2f462f/photo_2025-05-06_19-22-43.jpg?Expires=1841310388&Key-Pair-Id=K2ZIVPTIP2VGHC&Signature=z8G3NXKZaOS8YC3FSeuOBoRmBqONo-FR9MXVUjlav-j5eMf0MBOQQoMk5uRk3-MiH8sr31ZICz3Qm2hjxmAoH~pGkzMoFLa9r~XcYB8H1h9F2oB-bYLswGtOVjlzEmD2JSdSi~YBZC5dChm5pbuj6dH30fRDJaCJXQrqNSG1AhshZ2eXV1QzVyKSdHL44fluwFBWHZKizJv-BAGZviWhtNodV9-UU~Z~O4Ozh2tjsqOfxn0rwppdRICuIae7MOF~SqFAxhPquJ9AUlxTlAJ2XVVxTnkyJ1zvlsK6QzO~7coP~ycMI76thqK1UEeKX1hje6nFfrz3-Ld0DVRbhA2PTw__"
+    url = f"https://graph.instagram.com/v12.0/me/messages"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    data = {
+        "recipient": {
+            "id": receiver_id
+        },
+        "message":{
+              "attachment":{
+               "type":"image",
+               "payload":{
+                 "url":image_url,
+               }
+             }
+           }
+    }
+
+    response = requests.post(url,headers=headers,data=json.dumps(data))
+    print(response.json())
+
 
 if __name__ == "__main__":
     # --- Test get_user_conversation ---

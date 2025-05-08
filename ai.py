@@ -9,7 +9,7 @@ import traceback
 import anthropic 
 import google_docs_helper 
 from types import SimpleNamespace 
-
+import actions
 import functions
 load_dotenv(override=True)
 ModelName = os.getenv('ModelName')
@@ -177,7 +177,16 @@ tools = [
                 },
             "required": ["service"]
         }
+    },
+    {
+        "name": "send_entrance_image",
+        "description": "this function allows you to send our building entrance image for the customers to get in easy",
+        "input_schema": {
+                "type": "object",
+                "properties": {},
+        }
     }
+
 ]
 
 class llm:
@@ -191,7 +200,6 @@ class llm:
             api_key=API_KEY, # Uses the existing environment variable
         )
 
-    # DO NOT TOUCH this function per user request
     def function_call(self,response,_id,owner_id):
         function_name = response.function.name
         function_args = json.loads(response.function.arguments)
@@ -296,6 +304,10 @@ class llm:
             result = functions.send_example(query,owner_id)
             return {"function_response": f"send the user one of those link: {result}","image":None}
 
+        if function_name == "send_entrance_image":
+            actions.send_entrance_image(_id)
+
+            return {"function_response":f"entrance image has been sent to the user! you can pretend you sent it and continue the conversation"}
     def generate_response(self,_id,messages,owner_id):
         max_retries = 3
         retry_delay = 3 # seconds
