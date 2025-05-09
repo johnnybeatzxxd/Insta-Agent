@@ -17,9 +17,6 @@ Temperature = float(os.environ.get('Temperature'))
 API_KEY = os.getenv("AI_API_KEY")
 # ModelUrl = os.getenv("ModelUrl") # Not typically used with Anthropic SDK client
 today = datetime.date.today().isoformat()
-year = today.year
-month = today.month
-day = today.day
 
 tools = [
     {
