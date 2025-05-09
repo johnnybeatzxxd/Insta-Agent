@@ -16,7 +16,7 @@ ModelName = os.getenv('ModelName')
 Temperature = float(os.environ.get('Temperature'))
 API_KEY = os.getenv("AI_API_KEY")
 # ModelUrl = os.getenv("ModelUrl") # Not typically used with Anthropic SDK client
-today = datetime.date.today()
+today = datetime.date.today().isoformat()
 year = today.year
 month = today.month
 day = today.day
@@ -39,7 +39,7 @@ tools = [
     },
     {
             "name": "check_availablity",
-            "description": "This function lets you check availability within a specified date. The date can be provided as a specific date (YYYY-MM-DD) or as a weekday name (e.g., 'Monday', 'next Tuesday'). If a weekday name is provided, it will be interpreted as the next occurrence of that weekday.",
+            "description": f"This function lets you check availability within a specified date. The date can be provided as a specific date (YYYY-MM-DD) or as a weekday name (e.g., 'Monday', 'next Tuesday'). If a weekday name is provided, it will be interpreted as the next occurrence of that weekday. today is {today}",
         "input_schema": {
                 "type": "object",
                 "properties": {

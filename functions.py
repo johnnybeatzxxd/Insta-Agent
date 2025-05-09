@@ -320,13 +320,12 @@ def availablity(date_input):
         formatted_start_date = first_of_month_date.strftime("%Y%m%d")
         url = f"https://www.schedulista.com/schedule/bartaesthetics/available_days_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592366&start_date={formatted_start_date}&time_zone={time_zone_url_param}&scan_to_first_available=true"
     else:
-        url = f"https://www.schedulista.com/schedule/bartaesthetics/available_times_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592411&date={formatted_date}&time_zone={time_zone_url_param}"
+        url = f"https://www.schedulista.com/schedule/bartaesthetics/available_times_json?preview_from=https%3A%2F%2Fwww.schedulista.com%2Fsettings&service_id=1074592366&date={formatted_date}&time_zone={time_zone_url_param}"
 
     try:
         response = requests.get(url)
         response.raise_for_status()
         
-        print(response.json())
         parsed_data = json.loads(response.text)
 
         processed = {
@@ -415,4 +414,4 @@ def is_time_available(appointment_time, schedule):
     return False
 
 if __name__ == "__main__":
-    print(availablity("today"))
+    print(availablity("2024-05-25"))
